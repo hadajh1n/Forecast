@@ -68,4 +68,12 @@ class WeatherViewModel : ViewModel() {
             _cities.value = currentCities
         }
     }
+
+    // Удаление города свайпом
+    fun removeCity(cityName: String, context: Context) {
+        val currentCities = _cities.value.orEmpty().toMutableList()
+        currentCities.removeAll { it.name.equals(cityName, ignoreCase = true) }
+        _cities.value = currentCities
+        saveCities(context, currentCities.map { it.name })
+    }
 }
