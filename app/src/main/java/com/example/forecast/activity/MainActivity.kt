@@ -42,6 +42,9 @@ class MainActivity : AppCompatActivity() {
             }
         })
 
+        // Загрузка сохраненных городов при запуске
+        viewModel.loadCitiesFromPrefs(this@MainActivity)
+
         // Кнопка для добавления города
         binding.btnAddCity.setOnClickListener {
             showAddCityDialog()
@@ -73,7 +76,7 @@ class MainActivity : AppCompatActivity() {
         input.setOnItemClickListener { _, _, position, _ ->
             val cityName = adapter.getItem(position).toString().trim()
             if (cityName.isNotEmpty()) {
-                viewModel.addCity(cityName)
+                viewModel.addCity(cityName, this@MainActivity)
             } else {
                 Toast.makeText(this@MainActivity, "Город не выбран", Toast.LENGTH_SHORT).show()
             }
