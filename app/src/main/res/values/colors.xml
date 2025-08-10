@@ -2,5 +2,11 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="transparent">#00FFFFFF</color>
+    <color name="transparent">#00FFFFFF</color> // прозрачный
+    <color name="activity_main">#070707</color>
+    <color name="item_city">#202023</color>
+    <color name="activity_detail">#c8cbd0</color>
+    <color name="tvType1">#1B1212</color>
+    <color name="tvType2">#070707</color>
+    <color name="tvType3">#202023</color>
 </resources>

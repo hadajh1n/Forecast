@@ -75,13 +75,16 @@ class MainActivity : AppCompatActivity() {
 
     // Реализация диалогового окна при добавлении города
     private fun showAddCityDialog() {
-        val builder = AlertDialog.Builder(this@MainActivity)
+        val builder = AlertDialog.Builder(this@MainActivity, R.style.CustomAlertDialog)
         builder.setTitle("Добавить город")
 
         val input = AutoCompleteTextView(this@MainActivity)
         input.hint = "Введите название города"
         input.isSingleLine = true   // Ограничение одной строкой
         input.inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES // Начало с заглавной буквы
+        input.setHintTextColor(resources.getColor(R.color.tvType3))
+        input.setTextColor(resources.getColor(R.color.black))
+        input.setPadding(40,40,40,40)
 
         val cities = resources.getStringArray(R.array.cities) // Заготовленный список городов
 

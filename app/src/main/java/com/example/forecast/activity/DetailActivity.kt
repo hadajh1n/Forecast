@@ -36,7 +36,7 @@ class DetailActivity : AppCompatActivity() {
         val temperature = intent.getFloatExtra("TEMPERATURE", 0f)
         val icon = intent.getStringExtra("ICON") ?: ""
 
-        // Отображаем текущие данные
+        // Отображение текущих данных
         binding.tvCity.text = cityName
         binding.tvTemperature.text = "${temperature.toInt()}°C"
         val iconUrl = "https://openweathermap.org/img/wn/$icon.png"
@@ -44,7 +44,7 @@ class DetailActivity : AppCompatActivity() {
             .load(iconUrl)
             .into(binding.imWeather)
 
-        // Запрашиваем прогноз
+        // Запрос прогноза
         fetchForecast(cityName)
     }
 
@@ -52,15 +52,15 @@ class DetailActivity : AppCompatActivity() {
         CoroutineScope(Dispatchers.Main).launch {
             try {
                 val forecastResponse = RetrofitClient.weatherApi.getForecast(cityName, apiKey)
-                // Группируем данные по дням
+                // Группировка данных по дням
                 val dailyForecasts = groupForecastByDay(forecastResponse)
-                // Отображаем только следующие 6 дней
+                // Отображание только следующих 6 дней
                 val nextDays = dailyForecasts.take(6)
                 detailAdapter.detailList.clear()
                 detailAdapter.detailList.addAll(nextDays)
                 detailAdapter.notifyDataSetChanged()
             } catch (e: Exception) {
-                // Игнорируем ошибку для простоты
+                // Игнорирование ошибки
             }
         }
     }
@@ -68,7 +68,7 @@ class DetailActivity : AppCompatActivity() {
     private fun groupForecastByDay(response: ForecastWeather): List<ForecastItem> {
         val calendar = Calendar.getInstance()
         val today = calendar.get(Calendar.DAY_OF_YEAR)
-        calendar.add(Calendar.DAY_OF_YEAR, 1) // Начинаем со следующего дня
+        calendar.add(Calendar.DAY_OF_YEAR, 1) // Начало со следующего дня
         val nextDay = calendar.get(Calendar.DAY_OF_YEAR)
 
         val dailyForecasts = mutableListOf<ForecastItem>()
@@ -81,11 +81,11 @@ class DetailActivity : AppCompatActivity() {
         for (day in nextDay until nextDay + 6) {
             val dayData = groupedByDay[day]
             if (dayData != null && dayData.isNotEmpty()) {
-                // Вычисляем максимальную и минимальную температуру за день на основе main.temp
+                // Вычисление максимальной и минимальной температуры за день
                 val maxTemp = dayData.maxOfOrNull { it.main.temp } ?: 0f
                 val minTemp = dayData.minOfOrNull { it.main.temp } ?: 0f
-                val icon = dayData.first().weather[0].icon // Берем иконку первого прогноза
-                val dt = dayData.first().dt // Берем временную метку первого прогноза
+                val icon = dayData.first().weather[0].icon // Иконка первого прогноза
+                val dt = dayData.first().dt // Временная метка первого прогноза
                 dailyForecasts.add(
                     ForecastItem(
                         dt = dt,

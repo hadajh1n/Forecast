@@ -7,7 +7,6 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.forecast.R
 import com.example.forecast.databinding.ItemDetailBinding
-import com.example.forecast.dataclass.CurrentWeather
 import com.example.forecast.dataclass.ForecastItem
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -25,7 +24,6 @@ class DetailAdapter: RecyclerView.Adapter<DetailAdapter.DetailViewHolder>() {
             val dayFormat = SimpleDateFormat("E", Locale("ru"))
             tvDayWeek.text = dayFormat.format(date).uppercase()
 
-            // Загрузка иконок
             val iconUrl = "https://openweathermap.org/img/wn/${forecast.weather[0].icon}.png"
             Glide.with(itemView.context)
                 .load(iconUrl)
