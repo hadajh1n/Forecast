@@ -31,7 +31,6 @@ class MainActivity : AppCompatActivity() {
         startActivity(intent)
     }
 
-
     // Ссылки на диалог
     private var dialog: AlertDialog? = null
     private var dialogInputText: String? = null

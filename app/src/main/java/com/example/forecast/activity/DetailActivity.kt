@@ -26,6 +26,22 @@ class DetailActivity : AppCompatActivity() {
         binding.rvWeather.adapter = detailAdapter
         binding.rvWeather.layoutManager = LinearLayoutManager(this)
 
+        // Получение данных из Intent
+        val cityName = intent.getStringExtra("CITY_NAME") ?: "Неизвестный город"
+
+        // Отображение текущих данных
+        binding.tvCity.text = cityName
+
+        viewModel.currentWeather.observe(this@DetailActivity, Observer { weather ->
+            weather?.let {
+                binding.tvTemperature.text = "${it.main.temp.toInt()}°C"
+                val iconUrl = "https://openweathermap.org/img/wn/${it.weather[0].icon}.png"
+                Glide.with(this)
+                    .load(iconUrl)
+                    .into(binding.imWeather)
+            }
+        })
+
         viewModel.forecast.observe(this@DetailActivity, Observer { weather ->
             detailAdapter.detailList.clear()
             detailAdapter.detailList.addAll(weather)
@@ -38,19 +54,7 @@ class DetailActivity : AppCompatActivity() {
             }
         })
 
-        // Получаем данные из Intent
-        val cityName = intent.getStringExtra("CITY_NAME") ?: "Неизвестный город"
-        val temperature = intent.getFloatExtra("TEMPERATURE", 0f)
-        val icon = intent.getStringExtra("ICON") ?: ""
-
-        // Отображение текущих данных
-        binding.tvCity.text = cityName
-        binding.tvTemperature.text = "${temperature.toInt()}°C"
-        val iconUrl = "https://openweathermap.org/img/wn/$icon.png"
-        Glide.with(this)
-            .load(iconUrl)
-            .into(binding.imWeather)
-
+        viewModel.fetchCurrentWeather(cityName)
         viewModel.fetchForecast(cityName)
     }
 }

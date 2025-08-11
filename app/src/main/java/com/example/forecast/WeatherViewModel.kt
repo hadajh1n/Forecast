@@ -24,6 +24,9 @@ class WeatherViewModel : ViewModel() {
     private val _cities = MutableLiveData<List<CurrentWeather>>(emptyList())
     val cities: LiveData<List<CurrentWeather>> get() = _cities
 
+    private val _currentWeather = MutableLiveData<CurrentWeather?>()
+    val currentWeather: LiveData<CurrentWeather?> get() = _currentWeather
+
     private val _forecast = MutableLiveData<List<ForecastUI>>()
     val forecast: LiveData<List<ForecastUI>> get() = _forecast
 
@@ -92,6 +95,17 @@ class WeatherViewModel : ViewModel() {
         saveCities(context, currentCities.map { it.name })
     }
 
+    fun fetchCurrentWeather(cityName: String) {
+        viewModelScope.launch {
+            try {
+                val weather = RetrofitClient.weatherApi.getCurrentWeather(cityName, apiKey)
+                _currentWeather.value = weather
+            } catch (e: Exception) {
+
+            }
+        }
+    }
+
     fun fetchForecast(cityName: String) {
         CoroutineScope(Dispatchers.Main).launch {
             try {
@@ -100,7 +114,7 @@ class WeatherViewModel : ViewModel() {
                 val nextDays = dailyForecasts.take(6)
 
                 val uiList = nextDays.map { forecast ->
-                    val date = Date(forecast.dt * 1000)
+                    val date = Date(forecast.dt * SECONDS_TO_MILLIS)
                     val dayFormat = SimpleDateFormat("E", Locale("ru"))
                     val dayOfWeek = dayFormat.format(date).uppercase()
                     val iconUrl = "https://openweathermap.org/img/wn/${forecast.weather[0].icon}.png"
