@@ -7,31 +7,22 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.forecast.R
 import com.example.forecast.databinding.ItemDetailBinding
-import com.example.forecast.dataclass.ForecastItem
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import com.example.forecast.dataclass.ForecastUI
 
 class DetailAdapter: RecyclerView.Adapter<DetailAdapter.DetailViewHolder>() {
 
-    val detailList = ArrayList<ForecastItem>()
+    val detailList = ArrayList<ForecastUI>()
 
     class DetailViewHolder(item : View): RecyclerView.ViewHolder(item) {
         private val binding = ItemDetailBinding.bind(item)
 
-        fun bind(forecast: ForecastItem) = with(binding) {
-            val date = Date(forecast.dt * 1000)
-            val dayFormat = SimpleDateFormat("E", Locale("ru"))
-            tvDayWeek.text = dayFormat.format(date).uppercase()
-
-            val iconUrl = "https://openweathermap.org/img/wn/${forecast.weather[0].icon}.png"
+        fun bind(forecast: ForecastUI) = with(binding) {
+            tvDayWeek.text = forecast.dayOfWeek
             Glide.with(itemView.context)
-                .load(iconUrl)
+                .load(forecast.iconUrl)
                 .into(imDayWeek)
-
-            // Температура max min
-            tvMaxTemperature.text = "${forecast.main.tempMax.toInt()}°C"
-            tvMinTemperature.text = "${forecast.main.tempMin.toInt()}°C"
+            tvMaxTemperature.text = forecast.tempMax
+            tvMinTemperature.text = forecast.tempMin
         }
     }
 

@@ -6,7 +6,6 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.forecast.dataclass.CurrentWeather
-import com.example.forecast.dataclass.ForecastWeather
 import com.example.forecast.retrofit.RetrofitClient
 import kotlinx.coroutines.launch
 

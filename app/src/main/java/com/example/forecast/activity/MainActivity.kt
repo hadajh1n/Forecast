@@ -1,5 +1,6 @@
 package com.example.forecast.activity
 
+import android.content.Intent
 import android.os.Bundle
 import android.util.TypedValue
 import android.widget.ArrayAdapter
@@ -20,7 +21,16 @@ import com.example.forecast.viewmodel.WeatherViewModel
 class MainActivity : AppCompatActivity() {
     private val viewModel: WeatherViewModel by viewModels()
     private lateinit var binding: ActivityMainBinding
-    private val cityAdapter = CityAdapter()
+
+    private val cityAdapter = CityAdapter { currentWeather ->
+        val intent = Intent(this, DetailActivity::class.java).apply {
+            putExtra("CITY_NAME", currentWeather.name)
+            putExtra("TEMPERATURE", currentWeather.main.temp)
+            putExtra("ICON", currentWeather.weather[0].icon)
+        }
+        startActivity(intent)
+    }
+
 
     // Ссылки на диалог
     private var dialog: AlertDialog? = null
