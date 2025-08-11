@@ -1,6 +1,7 @@
 package com.example.forecast.activity
 
 import android.os.Bundle
+import android.util.TypedValue
 import android.widget.ArrayAdapter
 import android.widget.AutoCompleteTextView
 import android.widget.Toast
@@ -20,6 +21,10 @@ class MainActivity : AppCompatActivity() {
     private val viewModel: WeatherViewModel by viewModels()
     private lateinit var binding: ActivityMainBinding
     private val cityAdapter = CityAdapter()
+
+    // Ссылки на диалог
+    private var dialog: AlertDialog? = null
+    private var dialogInputText: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -63,7 +68,6 @@ class MainActivity : AppCompatActivity() {
         val itemTouchHelper = ItemTouchHelper(itemTouchHelperCallback)
         itemTouchHelper.attachToRecyclerView(binding.rvCity)
 
-
         // Загрузка сохраненных городов при запуске
         viewModel.loadCitiesFromPrefs(this@MainActivity)
 
@@ -71,6 +75,21 @@ class MainActivity : AppCompatActivity() {
         binding.btnAddCity.setOnClickListener {
             showAddCityDialog()
         }
+
+        // Восстановление состояния диалогового окна
+        if (savedInstanceState != null) {
+            val showDialog = savedInstanceState.getBoolean("showDialog", false)
+            dialogInputText = savedInstanceState.getString("dialogInputText")
+            if (showDialog) {
+                showAddCityDialog()
+            }
+        }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean("showDialog", dialog?.isShowing == true)
+
     }
 
     // Реализация диалогового окна при добавлении города
@@ -79,33 +98,39 @@ class MainActivity : AppCompatActivity() {
         builder.setTitle("Добавить город")
 
         val input = AutoCompleteTextView(this@MainActivity)
+
         input.hint = "Введите название города"
-        input.isSingleLine = true   // Ограничение одной строкой
-        input.inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES // Начало с заглавной буквы
+        input.isSingleLine = true
+        input.inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
         input.setHintTextColor(resources.getColor(R.color.tvType3))
         input.setTextColor(resources.getColor(R.color.black))
-        input.setPadding(40,40,40,40)
+        val padding = resources.getDimensionPixelSize(R.dimen.dialog_padding)
+        input.setPadding(padding, padding, padding, padding)
 
-        val cities = resources.getStringArray(R.array.cities) // Заготовленный список городов
-
+        val cities = resources.getStringArray(R.array.cities)
         val adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_dropdown_item_1line, cities)
         input.setAdapter(adapter)
         input.threshold = 1
 
         builder.setView(input)
+        builder.setNegativeButton("Отмена") { dialog, _ ->
+            this.dialog = null
+            dialog.cancel()
+        }
 
-        builder.setNegativeButton("Отмена") { dialog, _ -> dialog.cancel() }
-
-        val dialog = builder.show()
+        dialog = builder.create()
+        dialog?.show()
+        dialogInputText?.let {
+            input.setText(it)
+        }
 
         input.setOnItemClickListener { _, _, position, _ ->
             val cityName = adapter.getItem(position).toString().trim()
             if (cityName.isNotEmpty()) {
                 viewModel.addCity(cityName, this@MainActivity)
-            } else {
-                Toast.makeText(this@MainActivity, "Город не выбран", Toast.LENGTH_SHORT).show()
             }
-            dialog.dismiss()
+            dialog?.dismiss()
+            dialog = null
         }
     }
 }
