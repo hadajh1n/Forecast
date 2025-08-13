@@ -2,7 +2,9 @@ package com.example.forecast.activity
 
 import android.content.Intent
 import android.os.Bundle
-import android.util.TypedValue
+import android.text.Editable
+import android.text.TextWatcher
+import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.AutoCompleteTextView
 import android.widget.Toast
@@ -13,6 +15,7 @@ import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.forecast.Constants
 import com.example.forecast.R
 import com.example.forecast.adapter.CityAdapter
 import com.example.forecast.databinding.ActivityMainBinding
@@ -24,9 +27,7 @@ class MainActivity : AppCompatActivity() {
 
     private val cityAdapter = CityAdapter { currentWeather ->
         val intent = Intent(this, DetailActivity::class.java).apply {
-            putExtra("CITY_NAME", currentWeather.name)
-            putExtra("TEMPERATURE", currentWeather.main.temp)
-            putExtra("ICON", currentWeather.weather[0].icon)
+            putExtra(Constants.IntentKeys.CITY_NAME, currentWeather.name)
         }
         startActivity(intent)
     }
@@ -49,6 +50,7 @@ class MainActivity : AppCompatActivity() {
             cityAdapter.cityList.clear()
             cityAdapter.cityList.addAll(cities)
             cityAdapter.notifyDataSetChanged()
+            binding.cvCity.visibility = if (cities.isEmpty()) View.GONE else View.VISIBLE
         })
 
         // Подписка на ошибки при поиске города (WeatherViewModel)
@@ -87,8 +89,8 @@ class MainActivity : AppCompatActivity() {
 
         // Восстановление состояния диалогового окна
         if (savedInstanceState != null) {
-            val showDialog = savedInstanceState.getBoolean("showDialog", false)
-            dialogInputText = savedInstanceState.getString("dialogInputText")
+            val showDialog = savedInstanceState.getBoolean(Constants.SavedStateKeys.SHOW_DIALOG, false)
+            dialogInputText = savedInstanceState.getString(Constants.SavedStateKeys.DIALOG_INPUT_NAME)
             if (showDialog) {
                 showAddCityDialog()
             }
@@ -97,18 +99,18 @@ class MainActivity : AppCompatActivity() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        outState.putBoolean("showDialog", dialog?.isShowing == true)
-
+        outState.putBoolean(Constants.SavedStateKeys.SHOW_DIALOG, dialog?.isShowing == true)
+        outState.putString(Constants.SavedStateKeys.DIALOG_INPUT_NAME, dialogInputText)
     }
 
     // Реализация диалогового окна при добавлении города
     private fun showAddCityDialog() {
         val builder = AlertDialog.Builder(this@MainActivity, R.style.CustomAlertDialog)
-        builder.setTitle("Добавить город")
+        builder.setTitle(R.string.add_city_dialog_title)
 
         val input = AutoCompleteTextView(this@MainActivity)
 
-        input.hint = "Введите название города"
+        input.hint = getString(R.string.add_city_input_hint)
         input.isSingleLine = true
         input.inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
         input.setHintTextColor(resources.getColor(R.color.tvType3))
@@ -122,22 +124,34 @@ class MainActivity : AppCompatActivity() {
         input.threshold = 1
 
         builder.setView(input)
-        builder.setNegativeButton("Отмена") { dialog, _ ->
+        builder.setNegativeButton(R.string.cancel_button) { dialog, _ ->
             this.dialog = null
+            dialogInputText = null
             dialog.cancel()
         }
 
-        dialog = builder.create()
-        dialog?.show()
         dialogInputText?.let {
             input.setText(it)
         }
+
+        // Сохранение текста при вводе
+        input.addTextChangedListener(object: TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, after: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                dialogInputText = s?.toString()
+            }
+        })
+
+        dialog = builder.create()
+        dialog?.show()
 
         input.setOnItemClickListener { _, _, position, _ ->
             val cityName = adapter.getItem(position).toString().trim()
             if (cityName.isNotEmpty()) {
                 viewModel.addCity(cityName, this@MainActivity)
             }
+            dialogInputText = null
             dialog?.dismiss()
             dialog = null
         }

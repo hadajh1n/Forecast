@@ -7,6 +7,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
+import com.example.forecast.Constants
+import com.example.forecast.R
 import com.example.forecast.adapter.DetailAdapter
 import com.example.forecast.databinding.ActivityDetailBinding
 import com.example.forecast.viewmodel.WeatherViewModel
@@ -27,7 +29,7 @@ class DetailActivity : AppCompatActivity() {
         binding.rvWeather.layoutManager = LinearLayoutManager(this)
 
         // Получение данных из Intent
-        val cityName = intent.getStringExtra("CITY_NAME") ?: "Неизвестный город"
+        val cityName = intent.getStringExtra(Constants.IntentKeys.CITY_NAME) ?: getString(R.string.unknown_city)
 
         // Отображение текущих данных
         binding.tvCity.text = cityName
@@ -35,7 +37,7 @@ class DetailActivity : AppCompatActivity() {
         viewModel.currentWeather.observe(this@DetailActivity, Observer { weather ->
             weather?.let {
                 binding.tvTemperature.text = "${it.main.temp.toInt()}°C"
-                val iconUrl = "https://openweathermap.org/img/wn/${it.weather[0].icon}.png"
+                val iconUrl = Constants.WEATHER_ICON_URL.format(weather.weather[0].icon)
                 Glide.with(this)
                     .load(iconUrl)
                     .into(binding.imWeather)
@@ -54,7 +56,7 @@ class DetailActivity : AppCompatActivity() {
             }
         })
 
-        viewModel.fetchCurrentWeather(cityName)
-        viewModel.fetchForecast(cityName)
+        viewModel.fetchCurrentWeather(cityName, this@DetailActivity)
+        viewModel.fetchForecast(cityName, this@DetailActivity)
     }
 }

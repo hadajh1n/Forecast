@@ -5,6 +5,8 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.forecast.Constants
+import com.example.forecast.R
 import com.example.forecast.dataclass.CurrentWeather
 import com.example.forecast.dataclass.ForecastItem
 import com.example.forecast.dataclass.ForecastMain
@@ -33,18 +35,23 @@ class WeatherViewModel : ViewModel() {
     private val _error = MutableLiveData<String>()
     val error: LiveData<String> get() = _error
 
-    private val apiKey = "3a40caaed30624dd3ed13790e371b4bd"
     private val SECONDS_TO_MILLIS = 1000L
 
     // Функция добавления города
     fun addCity(cityName: String, context: Context) {
         viewModelScope.launch {
             try {
+                val apiKey = context.getString(R.string.weather_api_key)
+                if (apiKey.isEmpty()) {
+                    _error.value = context.getString(R.string.error_api_key_missing)
+                    return@launch
+                }
+
                 val currentCities = _cities.value.orEmpty().toMutableList()
 
                 // Проверка на дубликат города (регистр игнонируется)
                 if (currentCities.any { it.name.equals(cityName, ignoreCase = true) }) {
-                    _error.value = "Город уже добавлен"
+                    _error.value = context.getString(R.string.error_city_already_added)
                     return@launch
                 }
 
@@ -53,26 +60,31 @@ class WeatherViewModel : ViewModel() {
                 _cities.value = currentCities
                 saveCities(context, currentCities.map { it.name })
             } catch (e: Exception) {
-                _error.value = "Город не найден или проблемы с сетью"
+                _error.value = context.getString(R.string.error_city_not_found)
             }
         }
     }
 
     // Сохранение списка городов в SharedPreferences
     private fun saveCities(context: Context, cityNames: List<String>) {
-        val prefs = context.getSharedPreferences("WeatherAppPrefs", Context.MODE_PRIVATE)
-        prefs.edit().putStringSet("cities", cityNames.toSet()).apply()
+        val prefs = context.getSharedPreferences(Constants.PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit().putStringSet(Constants.PREFS_KEY_CITIES, cityNames.toSet()).apply()
     }
 
     // Возвращение списка городов из SharedPreferences
     private fun getCitiesFromPrefs(context: Context): List<String> {
-        val prefs = context.getSharedPreferences("WeatherAppPrefs", Context.MODE_PRIVATE)
-        return prefs.getStringSet("cities", emptySet())?.toList() ?: emptyList()
+        val prefs = context.getSharedPreferences(Constants.PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getStringSet(Constants.PREFS_KEY_CITIES, emptySet())?.toList() ?: emptyList()
     }
 
     // Загрузка списка городов из SharedPreferences
     fun loadCitiesFromPrefs(context: Context) {
         viewModelScope.launch {
+            val apiKey = context.getString(R.string.weather_api_key)
+            if (apiKey.isEmpty()) {
+                _error.value = context.getString(R.string.error_api_key_missing)
+                return@launch
+            }
             val cityName = getCitiesFromPrefs(context)
             val currentCities = mutableListOf<CurrentWeather>()
             for (cityName in cityName) {
@@ -80,7 +92,7 @@ class WeatherViewModel : ViewModel() {
                     val weather = RetrofitClient.weatherApi.getCurrentWeather(cityName, apiKey)
                     currentCities.add(weather)
                 } catch (e: Exception) {
-
+                    _error.value = context.getString(R.string.error_load_cities)
                 }
             }
             _cities.value = currentCities
@@ -95,20 +107,26 @@ class WeatherViewModel : ViewModel() {
         saveCities(context, currentCities.map { it.name })
     }
 
-    fun fetchCurrentWeather(cityName: String) {
+    fun fetchCurrentWeather(cityName: String, context: Context) {
         viewModelScope.launch {
             try {
+                val apiKey = context.getString(R.string.weather_api_key)
+                if (apiKey.isEmpty()) {
+                    _error.value = context.getString(R.string.error_api_key_missing)
+                    return@launch
+                }
                 val weather = RetrofitClient.weatherApi.getCurrentWeather(cityName, apiKey)
                 _currentWeather.value = weather
             } catch (e: Exception) {
-
+                _error.value = context.getString(R.string.error_fetch_current_weather)
             }
         }
     }
 
-    fun fetchForecast(cityName: String) {
+    fun fetchForecast(cityName: String, context: Context) {
         CoroutineScope(Dispatchers.Main).launch {
             try {
+                val apiKey = context.getString(R.string.weather_api_key)
                 val forecastResponse = RetrofitClient.weatherApi.getForecast(cityName, apiKey)
                 val dailyForecasts = groupForecastByDay(forecastResponse)
                 val nextDays = dailyForecasts.take(6)
@@ -117,18 +135,18 @@ class WeatherViewModel : ViewModel() {
                     val date = Date(forecast.dt * SECONDS_TO_MILLIS)
                     val dayFormat = SimpleDateFormat("E", Locale("ru"))
                     val dayOfWeek = dayFormat.format(date).uppercase()
-                    val iconUrl = "https://openweathermap.org/img/wn/${forecast.weather[0].icon}.png"
+                    val iconUrl = Constants.WEATHER_ICON_URL.format(forecast.weather[0].icon)
                     ForecastUI(
                         dayOfWeek = dayOfWeek,
                         iconUrl = iconUrl,
-                        tempMax = "${forecast.main.tempMax.toInt()}°C",
-                        tempMin = "${forecast.main.tempMin.toInt()}°C"
+                        tempMax = context.getString(R.string.temperature_format, forecast.main.tempMax.toInt()),
+                        tempMin = context.getString(R.string.temperature_format, forecast.main.tempMin.toInt())
                     )
                 }
 
                 _forecast.value = uiList
             } catch (e: Exception) {
-
+                _error.value = context.getString(R.string.error_fetch_forecast)
             }
         }
     }
