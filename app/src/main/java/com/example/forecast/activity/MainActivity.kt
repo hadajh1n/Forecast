@@ -11,7 +11,6 @@ import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -19,6 +18,7 @@ import com.example.forecast.Constants
 import com.example.forecast.R
 import com.example.forecast.adapter.CityAdapter
 import com.example.forecast.databinding.ActivityMainBinding
+import com.example.forecast.viewmodel.MainUIState
 import com.example.forecast.viewmodel.WeatherViewModel
 
 class MainActivity : AppCompatActivity() {
@@ -32,7 +32,6 @@ class MainActivity : AppCompatActivity() {
         startActivity(intent)
     }
 
-    // Ссылки на диалог
     private var dialog: AlertDialog? = null
     private var dialogInputText: String? = null
 
@@ -41,33 +40,49 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Инициализация RecycleView
         binding.rvCity.adapter = cityAdapter
         binding.rvCity.layoutManager = LinearLayoutManager(this@MainActivity)
 
-        // Подписка на список городов (WeatherViewModel)
-        viewModel.cities.observe(this@MainActivity, Observer { cities ->
-            cityAdapter.cityList.clear()
-            cityAdapter.cityList.addAll(cities)
-            cityAdapter.notifyDataSetChanged()
-            binding.cvCity.visibility = if (cities.isEmpty()) View.GONE else View.VISIBLE
-        })
-
-        // Подписка на ошибки при поиске города (WeatherViewModel)
-        viewModel.error.observe(this@MainActivity, Observer { message ->
-            if (message.isNotEmpty()) {
-                Toast.makeText(this@MainActivity, message, Toast.LENGTH_SHORT).show()
+        viewModel.uiState.observe(this@MainActivity) { state ->
+            when (state) {
+                is MainUIState.Loading -> {
+                    binding.progressBar.visibility = View.VISIBLE
+                    binding.cvCity.visibility = View.GONE
+                    binding.errorContainer.visibility = View.GONE
+                    binding.tvAddFirstCity.visibility = View.GONE
+                }
+                is MainUIState.Success -> {
+                    binding.progressBar.visibility = View.GONE
+                    binding.errorContainer.visibility = View.GONE
+                    binding.cvCity.visibility = if (state.cities.isEmpty()) View.GONE else View.VISIBLE
+                    binding.tvAddFirstCity.visibility = if (state.cities.isEmpty()) View.VISIBLE else View.GONE
+                    binding.btnAddCity.visibility = View.VISIBLE
+                    cityAdapter.cityList.clear()
+                    cityAdapter.cityList.addAll(state.cities)
+                    cityAdapter.notifyDataSetChanged()
+                }
+                is MainUIState.Error -> {
+                    binding.progressBar.visibility = View.GONE
+                    binding.cvCity.visibility = View.GONE
+                    binding.btnAddCity.visibility = View.GONE
+                    binding.errorContainer.visibility = View.VISIBLE
+                    binding.tvAddFirstCity.visibility = View.GONE
+                    binding.tvErrorLoadCities.text = state.message
+                }
             }
-        })
+        }
 
-        // Удаление города свайпом
+        binding.btnRetry.setOnClickListener {
+            viewModel.loadCitiesFromPrefs(this@MainActivity)
+        }
+
         val itemTouchHelperCallback = object : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
             override fun onMove(
                 recyclerView: RecyclerView,
                 viewHolder: RecyclerView.ViewHolder,
                 target: RecyclerView.ViewHolder
             ): Boolean {
-                return false // Без перетаскивания
+                return false
             }
 
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
@@ -79,15 +94,12 @@ class MainActivity : AppCompatActivity() {
         val itemTouchHelper = ItemTouchHelper(itemTouchHelperCallback)
         itemTouchHelper.attachToRecyclerView(binding.rvCity)
 
-        // Загрузка сохраненных городов при запуске
         viewModel.loadCitiesFromPrefs(this@MainActivity)
 
-        // Кнопка для добавления города
         binding.btnAddCity.setOnClickListener {
             showAddCityDialog()
         }
 
-        // Восстановление состояния диалогового окна
         if (savedInstanceState != null) {
             val showDialog = savedInstanceState.getBoolean(Constants.SavedStateKeys.SHOW_DIALOG, false)
             dialogInputText = savedInstanceState.getString(Constants.SavedStateKeys.DIALOG_INPUT_NAME)
@@ -103,13 +115,11 @@ class MainActivity : AppCompatActivity() {
         outState.putString(Constants.SavedStateKeys.DIALOG_INPUT_NAME, dialogInputText)
     }
 
-    // Реализация диалогового окна при добавлении города
     private fun showAddCityDialog() {
         val builder = AlertDialog.Builder(this@MainActivity, R.style.CustomAlertDialog)
         builder.setTitle(R.string.add_city_dialog_title)
 
         val input = AutoCompleteTextView(this@MainActivity)
-
         input.hint = getString(R.string.add_city_input_hint)
         input.isSingleLine = true
         input.inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
@@ -134,8 +144,7 @@ class MainActivity : AppCompatActivity() {
             input.setText(it)
         }
 
-        // Сохранение текста при вводе
-        input.addTextChangedListener(object: TextWatcher {
+        input.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, after: Int) {}
             override fun afterTextChanged(s: Editable?) {

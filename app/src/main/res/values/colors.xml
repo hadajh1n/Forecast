@@ -10,4 +10,6 @@
     <color name="tvType2">#070707</color>
     <color name="tvType3">#202023</color>
     <color name="btn_add">#0288D1</color>
+    <color name="progress_bar_color_black">#FF000000</color>
+    <color name="progress_bar_color_white">#FFFFFFFF</color>
 </resources>

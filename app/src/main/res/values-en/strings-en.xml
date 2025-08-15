@@ -6,15 +6,19 @@
     <string name="add_city_input_hint">Enter city name</string>
     <string name="cancel_button">Cancel</string>
     // Error
-    <string name="error_load_cities">Failed to load cities</string>
+    <string name="error_load_cities">Failed to load cities! Check the Internet</string>
     <string name="empty_city_list_message">The list of cities is empty. Click the button to add a city</string>
     <string name="retry_button">Repeat</string>
     <string name="error_city_already_added">City already added</string>
     <string name="error_city_not_found">City not found or network issues</string>
-    <string name="error_fetch_current_weather">Failed to load current weather</string>
+    <string name="error_fetch_current_weather">Failed to load current weather! Check the Internet</string>
     <string name="error_fetch_forecast">Failed to load forecast</string>
     <string name="unknown_city">Unknown city</string>
     <string name="error_api_key_missing">API-key not found</string>
+    <string name="error_loading_data">Error loading data</string>
+    <string name="error_no_data">No data</string>
     // Temperature Format
     <string name="temperature_format">%d°C</string>
+    // Empty list city
+    <string name="add_first_city">Add your first city</string>
 </resources>

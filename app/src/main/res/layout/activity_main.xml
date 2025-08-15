@@ -14,39 +14,57 @@
         android:orientation="vertical"
         android:padding="25dp"
         tools:context=".activity.MainActivity">
+        
+        <TextView
+            android:id="@+id/tvAddFirstCity"
+            style="@style/tvAddFirstCity"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="@string/add_first_city"
+            tools:text="Добавьте свой первый город"/>
 
         <ProgressBar
             android:id="@+id/progressBar"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:visibility="gone"
-            tools:visibility="visible" />
+            android:indeterminateTint="@color/progress_bar_color_white"
+            android:visibility="visible"/>
 
-        <LinearLayout
-            android:id="@+id/errorContainer"
-            android:layout_width="match_parent"
+        <androidx.cardview.widget.CardView
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:padding="16dp"
-            android:visibility="gone"
-            tools:visibility="visible">
+            android:layout_gravity="center"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="4dp">
 
-            <TextView
-                android:id="@+id/tvErrorLoadCities"
-                style="@style/tvErrorLoadCities"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:id="@+id/errorContainer"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/error_load_cities"/>
+                android:orientation="vertical"
+                android:gravity="center"
+                android:padding="16dp"
+                android:visibility="gone"
+                tools:visibility="visible">
 
-            <Button
-                android:id="@+id/btnRetry"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/retry_button"
-                android:layout_marginTop="8dp" />
-        </LinearLayout>
+                <TextView
+                    android:id="@+id/tvErrorLoadCities"
+                    style="@style/tvErrorLoadCities"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/error_load_cities"/>
+
+                <Button
+                    android:id="@+id/btnRetry"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/retry_button"
+                    android:layout_marginTop="8dp" />
+            </LinearLayout>
+
+        </androidx.cardview.widget.CardView>
 
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/cvCity"

@@ -8,15 +8,19 @@
     <string name="add_city_input_hint">Введите название города</string>
     <string name="cancel_button">Отмена</string>
     // Ошибки
-    <string name="error_load_cities">Не удалось загрузить список городов</string>
+    <string name="error_load_cities">Не удалось загрузить список городов! Проверьте наличие Интернета</string>
     <string name="empty_city_list_message">Список городов пуст. Нажмите на кнопку, чтобы добавить город</string>
     <string name="retry_button">Повторить</string>
     <string name="error_city_already_added">Город уже добавлен</string>
     <string name="error_city_not_found">Город не найден или проблемы с сетью</string>
-    <string name="error_fetch_current_weather">Не удалось загрузить текущую погоду</string>
+    <string name="error_fetch_current_weather">Не удалось загрузить текущую погоду! Проверьте наличие Интернета</string>
     <string name="error_fetch_forecast">Не удалось загрузить прогноз</string>
     <string name="unknown_city">Неизвестный город</string>
     <string name="error_api_key_missing">API-ключ не найден</string>
+    <string name="error_loading_data">Ошибка загрузки данных</string>
+    <string name="error_no_data">Нет данных</string>
     // Формат температуры
     <string name="temperature_format">%d°C</string>
+    // Пустой список городов
+    <string name="add_first_city">Добавьте свой первый город</string>
 </resources>

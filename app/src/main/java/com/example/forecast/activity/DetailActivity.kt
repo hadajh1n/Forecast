@@ -1,16 +1,17 @@
 package com.example.forecast.activity
 
 import android.os.Bundle
+import android.view.View
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.example.forecast.Constants
 import com.example.forecast.R
 import com.example.forecast.adapter.DetailAdapter
 import com.example.forecast.databinding.ActivityDetailBinding
+import com.example.forecast.viewmodel.DetailUIState
 import com.example.forecast.viewmodel.WeatherViewModel
 
 class DetailActivity : AppCompatActivity() {
@@ -18,45 +19,59 @@ class DetailActivity : AppCompatActivity() {
     private val viewModel: WeatherViewModel by viewModels()
     private val detailAdapter = DetailAdapter()
 
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityDetailBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Настройка RecyclerView для прогноза
+        // Настройка RecyclerView
         binding.rvWeather.adapter = detailAdapter
         binding.rvWeather.layoutManager = LinearLayoutManager(this)
 
-        // Получение данных из Intent
+        // Получение города из Intent
         val cityName = intent.getStringExtra(Constants.IntentKeys.CITY_NAME) ?: getString(R.string.unknown_city)
-
-        // Отображение текущих данных
         binding.tvCity.text = cityName
 
-        viewModel.currentWeather.observe(this@DetailActivity, Observer { weather ->
-            weather?.let {
-                binding.tvTemperature.text = "${it.main.temp.toInt()}°C"
-                val iconUrl = Constants.WEATHER_ICON_URL.format(weather.weather[0].icon)
-                Glide.with(this)
-                    .load(iconUrl)
-                    .into(binding.imWeather)
+        // Наблюдение за состоянием экрана
+        viewModel.detailState.observe(this@DetailActivity) { state ->
+            when (state) {
+                is DetailUIState.Loading -> {
+                    binding.progressBar.visibility = View.VISIBLE
+                    binding.contentContainer.visibility = View.GONE
+                    binding.errorContainer.visibility = View.GONE
+                }
+                is DetailUIState.Success -> {
+                    binding.progressBar.visibility = View.GONE
+                    binding.errorContainer.visibility = View.GONE
+
+                    if (state.forecast.isEmpty()) {
+                        binding.contentContainer.visibility = View.GONE
+                    } else {
+                        binding.contentContainer.visibility = View.VISIBLE
+
+                        binding.tvTemperature.text = state.temperature
+                        Glide.with(this)
+                            .load(state.iconUrl)
+                            .into(binding.imWeather)
+
+                        detailAdapter.detailList.clear()
+                        detailAdapter.detailList.addAll(state.forecast)
+                        detailAdapter.notifyDataSetChanged()
+                    }
+                }
+                is DetailUIState.Error -> {
+                    binding.progressBar.visibility = View.GONE
+                    binding.contentContainer.visibility = View.GONE
+                    binding.errorContainer.visibility = View.VISIBLE
+                    binding.tvError.text = state.message
+                }
             }
-        })
+        }
 
-        viewModel.forecast.observe(this@DetailActivity, Observer { weather ->
-            detailAdapter.detailList.clear()
-            detailAdapter.detailList.addAll(weather)
-            detailAdapter.notifyDataSetChanged()
-        })
+        binding.btnRetry.setOnClickListener {
+            viewModel.loadCityDetail(cityName, this@DetailActivity)
+        }
 
-        viewModel.error.observe(this@DetailActivity, Observer { message ->
-            if (message.isNotEmpty()) {
-                Toast.makeText(this@DetailActivity, message, Toast.LENGTH_SHORT).show()
-            }
-        })
-
-        viewModel.fetchCurrentWeather(cityName, this@DetailActivity)
-        viewModel.fetchForecast(cityName, this@DetailActivity)
+        viewModel.loadCityDetail(cityName, this@DetailActivity)
     }
 }

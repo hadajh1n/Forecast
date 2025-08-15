@@ -1,6 +1,7 @@
 package com.example.forecast.viewmodel
 
 import android.content.Context
+import android.widget.Toast
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -12,141 +13,155 @@ import com.example.forecast.dataclass.ForecastItem
 import com.example.forecast.dataclass.ForecastMain
 import com.example.forecast.dataclass.ForecastUI
 import com.example.forecast.dataclass.ForecastWeather
+import com.example.forecast.dataclass.Main
 import com.example.forecast.dataclass.Weather
 import com.example.forecast.retrofit.RetrofitClient
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
+sealed class MainUIState {
+    object Loading : MainUIState()
+    data class Success(val cities: List<CurrentWeather>) : MainUIState()
+    data class Error(val message: String) : MainUIState()
+}
+
+sealed class DetailUIState {
+    object Loading : DetailUIState()
+    data class Success(
+        val temperature: String,
+        val iconUrl: String,
+        val forecast: List<ForecastUI>
+    ) : DetailUIState()
+    data class Error(val message: String) : DetailUIState()
+}
+
 class WeatherViewModel : ViewModel() {
-    private val _cities = MutableLiveData<List<CurrentWeather>>(emptyList())
-    val cities: LiveData<List<CurrentWeather>> get() = _cities
+    private val _uiState = MutableLiveData<MainUIState>()
+    val uiState: LiveData<MainUIState> get() = _uiState
 
-    private val _currentWeather = MutableLiveData<CurrentWeather?>()
-    val currentWeather: LiveData<CurrentWeather?> get() = _currentWeather
-
-    private val _forecast = MutableLiveData<List<ForecastUI>>()
-    val forecast: LiveData<List<ForecastUI>> get() = _forecast
-
-    private val _error = MutableLiveData<String>()
-    val error: LiveData<String> get() = _error
+    private val _detailState = MutableLiveData<DetailUIState>()
+    val detailState: LiveData<DetailUIState> get() = _detailState
 
     private val SECONDS_TO_MILLIS = 1000L
 
-    // Функция добавления города
     fun addCity(cityName: String, context: Context) {
         viewModelScope.launch {
             try {
                 val apiKey = context.getString(R.string.weather_api_key)
                 if (apiKey.isEmpty()) {
-                    _error.value = context.getString(R.string.error_api_key_missing)
+                    // Если нет API-ключа, устанавливаем состояние ошибки
+                    _uiState.value = MainUIState.Error(context.getString(R.string.error_api_key_missing))
                     return@launch
                 }
 
-                val currentCities = _cities.value.orEmpty().toMutableList()
+                val currentCities = getCitiesFromPrefs(context).toMutableList()
 
-                // Проверка на дубликат города (регистр игнонируется)
-                if (currentCities.any { it.name.equals(cityName, ignoreCase = true) }) {
-                    _error.value = context.getString(R.string.error_city_already_added)
+                if (currentCities.any { it.equals(cityName, ignoreCase = true) }) {
+                    // Если город уже есть, показываем Toast и сохраняем текущее состояние
+                    _uiState.value = _uiState.value ?: MainUIState.Success(emptyList())
+                    Toast.makeText(context, context.getString(R.string.error_city_already_added), Toast.LENGTH_SHORT).show()
                     return@launch
                 }
 
                 val weather = RetrofitClient.weatherApi.getCurrentWeather(cityName, apiKey)
-                currentCities.add(weather)
-                _cities.value = currentCities
-                saveCities(context, currentCities.map { it.name })
+                currentCities.add(cityName)
+                saveCities(context, currentCities)
+                _uiState.value = MainUIState.Success(loadWeatherForCities(currentCities, apiKey, context))
             } catch (e: Exception) {
-                _error.value = context.getString(R.string.error_city_not_found)
+                _uiState.value = MainUIState.Error(context.getString(R.string.error_load_cities))
             }
         }
     }
 
-    // Сохранение списка городов в SharedPreferences
+    private suspend fun loadWeatherForCities(cityNames: List<String>, apiKey: String, context: Context): List<CurrentWeather> {
+        val currentCities = mutableListOf<CurrentWeather>()
+        for (name in cityNames) {
+
+                val weather = RetrofitClient.weatherApi.getCurrentWeather(name, apiKey)
+                currentCities.add(weather)
+
+        }
+        return currentCities
+    }
+
     private fun saveCities(context: Context, cityNames: List<String>) {
         val prefs = context.getSharedPreferences(Constants.PREFS_NAME, Context.MODE_PRIVATE)
         prefs.edit().putStringSet(Constants.PREFS_KEY_CITIES, cityNames.toSet()).apply()
     }
 
-    // Возвращение списка городов из SharedPreferences
     private fun getCitiesFromPrefs(context: Context): List<String> {
         val prefs = context.getSharedPreferences(Constants.PREFS_NAME, Context.MODE_PRIVATE)
         return prefs.getStringSet(Constants.PREFS_KEY_CITIES, emptySet())?.toList() ?: emptyList()
     }
 
-    // Загрузка списка городов из SharedPreferences
     fun loadCitiesFromPrefs(context: Context) {
         viewModelScope.launch {
-            val apiKey = context.getString(R.string.weather_api_key)
-            if (apiKey.isEmpty()) {
-                _error.value = context.getString(R.string.error_api_key_missing)
-                return@launch
-            }
-            val cityName = getCitiesFromPrefs(context)
-            val currentCities = mutableListOf<CurrentWeather>()
-            for (cityName in cityName) {
-                try {
-                    val weather = RetrofitClient.weatherApi.getCurrentWeather(cityName, apiKey)
-                    currentCities.add(weather)
-                } catch (e: Exception) {
-                    _error.value = context.getString(R.string.error_load_cities)
-                }
-            }
-            _cities.value = currentCities
-        }
-    }
-
-    // Удаление города свайпом
-    fun removeCity(cityName: String, context: Context) {
-        val currentCities = _cities.value.orEmpty().toMutableList()
-        currentCities.removeAll { it.name.equals(cityName, ignoreCase = true) }
-        _cities.value = currentCities
-        saveCities(context, currentCities.map { it.name })
-    }
-
-    fun fetchCurrentWeather(cityName: String, context: Context) {
-        viewModelScope.launch {
+            _uiState.value = MainUIState.Loading
             try {
                 val apiKey = context.getString(R.string.weather_api_key)
                 if (apiKey.isEmpty()) {
-                    _error.value = context.getString(R.string.error_api_key_missing)
+                    _uiState.value = MainUIState.Error(context.getString(R.string.error_api_key_missing))
                     return@launch
                 }
-                val weather = RetrofitClient.weatherApi.getCurrentWeather(cityName, apiKey)
-                _currentWeather.value = weather
+                val cityNames = getCitiesFromPrefs(context)
+
+                if (cityNames.isEmpty()) {
+                    _uiState.value = MainUIState.Success(emptyList())
+                    return@launch
+                }
+
+                val cities = loadWeatherForCities(cityNames, apiKey, context)
+                _uiState.value = MainUIState.Success(cities)
+
             } catch (e: Exception) {
-                _error.value = context.getString(R.string.error_fetch_current_weather)
+                _uiState.value = MainUIState.Error(context.getString(R.string.error_load_cities))
             }
         }
     }
 
-    fun fetchForecast(cityName: String, context: Context) {
-        CoroutineScope(Dispatchers.Main).launch {
+    fun removeCity(cityName: String, context: Context) {
+        val currentCities = getCitiesFromPrefs(context).toMutableList()
+        currentCities.removeAll { it.equals(cityName, ignoreCase = true) }
+        saveCities(context, currentCities)
+        if (currentCities.isEmpty()) {
+            _uiState.value = MainUIState.Success(emptyList())
+        } else {
+            loadCitiesFromPrefs(context)
+        }
+    }
+
+    fun loadCityDetail(cityName: String, context: Context) {
+        viewModelScope.launch {
+            _detailState.value = DetailUIState.Loading
             try {
                 val apiKey = context.getString(R.string.weather_api_key)
+                if (apiKey.isEmpty()) {
+                    _detailState.value = DetailUIState.Error(context.getString(R.string.error_api_key_missing))
+                    return@launch
+                }
+                val weather = RetrofitClient.weatherApi.getCurrentWeather(cityName, apiKey)
                 val forecastResponse = RetrofitClient.weatherApi.getForecast(cityName, apiKey)
-                val dailyForecasts = groupForecastByDay(forecastResponse)
-                val nextDays = dailyForecasts.take(6)
 
-                val uiList = nextDays.map { forecast ->
-                    val date = Date(forecast.dt * SECONDS_TO_MILLIS)
-                    val dayFormat = SimpleDateFormat("E", Locale("ru"))
-                    val dayOfWeek = dayFormat.format(date).uppercase()
-                    val iconUrl = Constants.WEATHER_ICON_URL.format(forecast.weather[0].icon)
+                val dailyForecasts = groupForecastByDay(forecastResponse)
+                val uiForecast = dailyForecasts.take(6).map {
                     ForecastUI(
-                        dayOfWeek = dayOfWeek,
-                        iconUrl = iconUrl,
-                        tempMax = context.getString(R.string.temperature_format, forecast.main.tempMax.toInt()),
-                        tempMin = context.getString(R.string.temperature_format, forecast.main.tempMin.toInt())
+                        dayOfWeek = SimpleDateFormat("E", Locale("ru")).format(Date(it.dt * SECONDS_TO_MILLIS)).uppercase(),
+                        iconUrl = Constants.WEATHER_ICON_URL.format(it.weather[0].icon),
+                        tempMax = context.getString(R.string.temperature_format, it.main.tempMax.toInt()),
+                        tempMin = context.getString(R.string.temperature_format, it.main.tempMin.toInt())
                     )
                 }
 
-                _forecast.value = uiList
+                _detailState.value = DetailUIState.Success(
+                    temperature = context.getString(R.string.temperature_format, weather.main.temp.toInt()),
+                    iconUrl = Constants.WEATHER_ICON_URL.format(weather.weather[0].icon),
+                    forecast = uiForecast
+                )
             } catch (e: Exception) {
-                _error.value = context.getString(R.string.error_fetch_forecast)
+                _detailState.value = DetailUIState.Error(context.getString(R.string.error_fetch_current_weather))
             }
         }
     }
@@ -154,7 +169,7 @@ class WeatherViewModel : ViewModel() {
     private fun groupForecastByDay(response: ForecastWeather): List<ForecastItem> {
         val calendar = Calendar.getInstance()
         val today = calendar.get(Calendar.DAY_OF_YEAR)
-        calendar.add(Calendar.DAY_OF_YEAR, 1) // Начало со следующего дня
+        calendar.add(Calendar.DAY_OF_YEAR, 1)
         val nextDay = calendar.get(Calendar.DAY_OF_YEAR)
 
         val dailyForecasts = mutableListOf<ForecastItem>()
@@ -163,15 +178,13 @@ class WeatherViewModel : ViewModel() {
             calendar.get(Calendar.DAY_OF_YEAR)
         }
 
-        // Собираем данные для следующих 6 дней
         for (day in nextDay until nextDay + 6) {
             val dayData = groupedByDay[day]
             if (dayData != null && dayData.isNotEmpty()) {
-                // Вычисление максимальной и минимальной температуры за день
                 val maxTemp = dayData.maxOfOrNull { it.main.temp } ?: 0f
                 val minTemp = dayData.minOfOrNull { it.main.temp } ?: 0f
-                val icon = dayData.first().weather[0].icon // Иконка первого прогноза
-                val dt = dayData.first().dt // Временная метка первого прогноза
+                val icon = dayData.first().weather[0].icon
+                val dt = dayData.first().dt
                 dailyForecasts.add(
                     ForecastItem(
                         dt = dt,
