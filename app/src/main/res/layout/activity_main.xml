@@ -11,18 +11,29 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/activity_main"
+        android:gravity="center_horizontal"
         android:orientation="vertical"
         android:padding="25dp"
         tools:context=".activity.MainActivity">
-        
-        <TextView
-            android:id="@+id/tvAddFirstCity"
-            style="@style/tvAddFirstCity"
-            android:layout_width="match_parent"
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:gravity="center"
-            android:text="@string/add_first_city"
-            tools:text="Добавьте свой первый город"/>
+            app:cardBackgroundColor="@color/item_city"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="4dp">
+
+            <TextView
+                android:id="@+id/tvAddFirstCity"
+                style="@style/tvAddFirstCity"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:padding="15dp"
+                android:text="@string/add_first_city"
+                tools:text="Добавьте свой первый город" />
+
+        </androidx.cardview.widget.CardView>
 
         <ProgressBar
             android:id="@+id/progressBar"
@@ -30,7 +41,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:indeterminateTint="@color/progress_bar_color_white"
-            android:visibility="visible"/>
+            android:visibility="visible" />
 
         <androidx.cardview.widget.CardView
             android:layout_width="wrap_content"
@@ -43,8 +54,9 @@
                 android:id="@+id/errorContainer"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
+                android:background="@color/errorContainer"
                 android:gravity="center"
+                android:orientation="vertical"
                 android:padding="16dp"
                 android:visibility="gone"
                 tools:visibility="visible">
@@ -54,14 +66,16 @@
                     style="@style/tvErrorLoadCities"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/error_load_cities"/>
+                    android:text="@string/error_load_cities" />
 
                 <Button
                     android:id="@+id/btnRetry"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:backgroundTint="@color/btnRetry"
                     android:text="@string/retry_button"
-                    android:layout_marginTop="8dp" />
+                    android:textColor="@color/white" />
             </LinearLayout>
 
         </androidx.cardview.widget.CardView>

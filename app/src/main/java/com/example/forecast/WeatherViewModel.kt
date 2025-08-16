@@ -13,7 +13,6 @@ import com.example.forecast.dataclass.ForecastItem
 import com.example.forecast.dataclass.ForecastMain
 import com.example.forecast.dataclass.ForecastUI
 import com.example.forecast.dataclass.ForecastWeather
-import com.example.forecast.dataclass.Main
 import com.example.forecast.dataclass.Weather
 import com.example.forecast.retrofit.RetrofitClient
 import kotlinx.coroutines.launch
@@ -52,7 +51,6 @@ class WeatherViewModel : ViewModel() {
             try {
                 val apiKey = context.getString(R.string.weather_api_key)
                 if (apiKey.isEmpty()) {
-                    // Если нет API-ключа, устанавливаем состояние ошибки
                     _uiState.value = MainUIState.Error(context.getString(R.string.error_api_key_missing))
                     return@launch
                 }
@@ -60,29 +58,32 @@ class WeatherViewModel : ViewModel() {
                 val currentCities = getCitiesFromPrefs(context).toMutableList()
 
                 if (currentCities.any { it.equals(cityName, ignoreCase = true) }) {
-                    // Если город уже есть, показываем Toast и сохраняем текущее состояние
-                    _uiState.value = _uiState.value ?: MainUIState.Success(emptyList())
                     Toast.makeText(context, context.getString(R.string.error_city_already_added), Toast.LENGTH_SHORT).show()
                     return@launch
                 }
 
-                val weather = RetrofitClient.weatherApi.getCurrentWeather(cityName, apiKey)
                 currentCities.add(cityName)
                 saveCities(context, currentCities)
-                _uiState.value = MainUIState.Success(loadWeatherForCities(currentCities, apiKey, context))
+
+                val weather = RetrofitClient.weatherApi.getCurrentWeather(cityName, apiKey)
+                val currentState = _uiState.value
+                if (currentState is MainUIState.Success) {
+                    val updatedCities = currentState.cities.toMutableList().apply { add(weather) }
+                    _uiState.value = MainUIState.Success(updatedCities)
+                } else {
+                    _uiState.value = MainUIState.Success(listOf(weather))
+                }
             } catch (e: Exception) {
                 _uiState.value = MainUIState.Error(context.getString(R.string.error_load_cities))
             }
         }
     }
 
-    private suspend fun loadWeatherForCities(cityNames: List<String>, apiKey: String, context: Context): List<CurrentWeather> {
+    private suspend fun loadWeatherForCities(cityNames: List<String>, apiKey: String): List<CurrentWeather> {
         val currentCities = mutableListOf<CurrentWeather>()
         for (name in cityNames) {
-
-                val weather = RetrofitClient.weatherApi.getCurrentWeather(name, apiKey)
-                currentCities.add(weather)
-
+            val weather = RetrofitClient.weatherApi.getCurrentWeather(name, apiKey)
+            currentCities.add(weather)
         }
         return currentCities
     }
@@ -113,7 +114,7 @@ class WeatherViewModel : ViewModel() {
                     return@launch
                 }
 
-                val cities = loadWeatherForCities(cityNames, apiKey, context)
+                val cities = loadWeatherForCities(cityNames, apiKey)
                 _uiState.value = MainUIState.Success(cities)
 
             } catch (e: Exception) {
@@ -126,10 +127,13 @@ class WeatherViewModel : ViewModel() {
         val currentCities = getCitiesFromPrefs(context).toMutableList()
         currentCities.removeAll { it.equals(cityName, ignoreCase = true) }
         saveCities(context, currentCities)
-        if (currentCities.isEmpty()) {
+
+        val currentState = _uiState.value
+        if (currentState is MainUIState.Success) {
+            val updatedCities = currentState.cities.filter { !it.name.equals(cityName, ignoreCase = true) }
+            _uiState.value = MainUIState.Success(updatedCities)
+        } else if (currentCities.isEmpty()) {
             _uiState.value = MainUIState.Success(emptyList())
-        } else {
-            loadCitiesFromPrefs(context)
         }
     }
 
@@ -168,14 +172,14 @@ class WeatherViewModel : ViewModel() {
 
     private fun groupForecastByDay(response: ForecastWeather): List<ForecastItem> {
         val calendar = Calendar.getInstance()
-        val today = calendar.get(Calendar.DAY_OF_YEAR)
         calendar.add(Calendar.DAY_OF_YEAR, 1)
         val nextDay = calendar.get(Calendar.DAY_OF_YEAR)
 
         val dailyForecasts = mutableListOf<ForecastItem>()
         val groupedByDay = response.list.groupBy { item ->
-            calendar.time = Date(item.dt * SECONDS_TO_MILLIS)
-            calendar.get(Calendar.DAY_OF_YEAR)
+            val itemCal = Calendar.getInstance()
+            itemCal.time = Date(item.dt * SECONDS_TO_MILLIS)
+            itemCal.get(Calendar.DAY_OF_YEAR)
         }
 
         for (day in nextDay until nextDay + 6) {

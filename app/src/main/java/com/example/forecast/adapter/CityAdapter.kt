@@ -1,5 +1,6 @@
 package com.example.forecast.adapter
 
+import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -16,9 +17,9 @@ class CityAdapter(private val onItemClick: (CurrentWeather) -> Unit) : RecyclerV
     inner class WeatherViewHolder(item: View) : RecyclerView.ViewHolder(item) {
         private val binding = ItemCityBinding.bind(item)
 
-        fun bind(currentWeather: CurrentWeather) = with(binding) {
+        fun bind(currentWeather: CurrentWeather, context: Context) = with(binding) {
             tvCity.text = currentWeather.name
-            tvTemperature.text = "${currentWeather.main.temp.roundToInt()}°C"
+            tvTemperature.text = context.getString(R.string.temperature_format, currentWeather.main.temp.roundToInt())
 
             root.setOnClickListener {
                 onItemClick(currentWeather)
@@ -33,7 +34,7 @@ class CityAdapter(private val onItemClick: (CurrentWeather) -> Unit) : RecyclerV
     }
 
     override fun onBindViewHolder(holder: WeatherViewHolder, position: Int) {
-        holder.bind(cityList[position])
+        holder.bind(cityList[position], holder.itemView.context)
     }
 
     override fun getItemCount() = cityList.size

@@ -7,7 +7,6 @@ import android.text.TextWatcher
 import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.AutoCompleteTextView
-import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -57,9 +56,12 @@ class MainActivity : AppCompatActivity() {
                     binding.cvCity.visibility = if (state.cities.isEmpty()) View.GONE else View.VISIBLE
                     binding.tvAddFirstCity.visibility = if (state.cities.isEmpty()) View.VISIBLE else View.GONE
                     binding.btnAddCity.visibility = View.VISIBLE
-                    cityAdapter.cityList.clear()
-                    cityAdapter.cityList.addAll(state.cities)
-                    cityAdapter.notifyDataSetChanged()
+
+                    if (cityAdapter.cityList != state.cities) {
+                        cityAdapter.cityList.clear()
+                        cityAdapter.cityList.addAll(state.cities)
+                        cityAdapter.notifyDataSetChanged()
+                    }
                 }
                 is MainUIState.Error -> {
                     binding.progressBar.visibility = View.GONE
@@ -88,6 +90,8 @@ class MainActivity : AppCompatActivity() {
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
                 val position = viewHolder.adapterPosition
                 val city = cityAdapter.cityList[position]
+                cityAdapter.cityList.removeAt(position)
+                cityAdapter.notifyItemRemoved(position)
                 viewModel.removeCity(city.name, this@MainActivity)
             }
         }

@@ -2,7 +2,6 @@ package com.example.forecast.activity
 
 import android.os.Bundle
 import android.view.View
-import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -24,15 +23,12 @@ class DetailActivity : AppCompatActivity() {
         binding = ActivityDetailBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Настройка RecyclerView
         binding.rvWeather.adapter = detailAdapter
         binding.rvWeather.layoutManager = LinearLayoutManager(this)
 
-        // Получение города из Intent
         val cityName = intent.getStringExtra(Constants.IntentKeys.CITY_NAME) ?: getString(R.string.unknown_city)
         binding.tvCity.text = cityName
 
-        // Наблюдение за состоянием экрана
         viewModel.detailState.observe(this@DetailActivity) { state ->
             when (state) {
                 is DetailUIState.Loading -> {
