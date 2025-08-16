@@ -49,6 +49,7 @@ class MainActivity : AppCompatActivity() {
                     binding.cvCity.visibility = View.GONE
                     binding.errorContainer.visibility = View.GONE
                     binding.tvAddFirstCity.visibility = View.GONE
+                    binding.btnAddCity.visibility = View.GONE
                 }
                 is MainUIState.Success -> {
                     binding.progressBar.visibility = View.GONE
