@@ -24,6 +24,9 @@ class MainActivity : AppCompatActivity() {
     private val viewModel: WeatherViewModel by viewModels()
     private lateinit var binding: ActivityMainBinding
 
+    private val SHOW_DIALOG = "showDialog"
+    private val DIALOG_INPUT_NAME = "dialogInputText"
+
     private val cityAdapter = CityAdapter { currentWeather ->
         val intent = Intent(this, DetailActivity::class.java).apply {
             putExtra(Constants.IntentKeys.CITY_NAME, currentWeather.name)
@@ -106,8 +109,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         if (savedInstanceState != null) {
-            val showDialog = savedInstanceState.getBoolean(Constants.SavedStateKeys.SHOW_DIALOG, false)
-            dialogInputText = savedInstanceState.getString(Constants.SavedStateKeys.DIALOG_INPUT_NAME)
+            val showDialog = savedInstanceState.getBoolean(SHOW_DIALOG, false)
+            dialogInputText = savedInstanceState.getString(DIALOG_INPUT_NAME)
             if (showDialog) {
                 showAddCityDialog()
             }
@@ -116,8 +119,8 @@ class MainActivity : AppCompatActivity() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        outState.putBoolean(Constants.SavedStateKeys.SHOW_DIALOG, dialog?.isShowing == true)
-        outState.putString(Constants.SavedStateKeys.DIALOG_INPUT_NAME, dialogInputText)
+        outState.putBoolean(SHOW_DIALOG, dialog?.isShowing == true)
+        outState.putString(DIALOG_INPUT_NAME, dialogInputText)
     }
 
     private fun showAddCityDialog() {
@@ -138,13 +141,6 @@ class MainActivity : AppCompatActivity() {
         input.setAdapter(adapter)
         input.threshold = 1
 
-        builder.setView(input)
-        builder.setNegativeButton(R.string.cancel_button) { dialog, _ ->
-            this.dialog = null
-            dialogInputText = null
-            dialog.cancel()
-        }
-
         dialogInputText?.let {
             input.setText(it)
         }
@@ -157,8 +153,20 @@ class MainActivity : AppCompatActivity() {
             }
         })
 
-        dialog = builder.create()
-        dialog?.show()
+        builder.setView(input)
+        builder.setNegativeButton(R.string.cancel_button) { dialog, _ ->
+            this.dialog = null
+            dialogInputText = null
+            dialog.cancel()
+        }
+
+        dialog = builder.create().apply {
+            setCanceledOnTouchOutside(false)
+            setCancelable(false)
+            show()
+
+            getButton(AlertDialog.BUTTON_NEGATIVE)?.setTextColor(resources.getColor(R.color.black))
+        }
 
         input.setOnItemClickListener { _, _, position, _ ->
             val cityName = adapter.getItem(position).toString().trim()

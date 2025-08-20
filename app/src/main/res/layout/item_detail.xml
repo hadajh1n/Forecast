@@ -9,47 +9,56 @@
     app:cardCornerRadius="80dp"
     android:backgroundTint="@color/white">
 
-    <LinearLayout
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:paddingHorizontal="30dp">
 
         <TextView
             android:id="@+id/tvDayWeek"
             style="@style/tvDayWeek"
             android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_marginStart="20dp"
-            android:layout_gravity="center"
+            android:layout_height="wrap_content"
             android:gravity="center"
-            tools:text="ВТ"/>
+            tools:text="ВТ"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"/>
 
         <ImageView
             android:id="@+id/imDayWeek"
             android:layout_width="50dp"
             android:layout_height="50dp"
-            android:layout_marginStart="110dp"
-            android:layout_marginEnd="70dp"/>
+            android:layout_marginStart="50dp"
+            app:layout_constraintStart_toEndOf="@id/tvDayWeek"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/tvMaxTemperature"
+            android:contentDescription="day icon"/>
 
         <TextView
             android:id="@+id/tvMaxTemperature"
             style="@style/tvMaxTemperature"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_gravity="center"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
             android:gravity="center"
-            tools:text="28"/>
+            tools:text="28"
+            app:layout_constraintStart_toEndOf="@id/imDayWeek"
+            app:layout_constraintEnd_toStartOf="@id/tvMinTemperature"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"/>
 
         <TextView
             android:id="@+id/tvMinTemperature"
             style="@style/tvMaxTemperature"
             android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_marginStart="20dp"
-            android:layout_gravity="center"
+            android:layout_height="wrap_content"
             android:gravity="center"
-            tools:text="15"/>
+            tools:text="15"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"/>
 
-    </LinearLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
 </com.google.android.material.card.MaterialCardView>

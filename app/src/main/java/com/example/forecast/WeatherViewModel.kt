@@ -45,6 +45,9 @@ class WeatherViewModel : ViewModel() {
     val detailState: LiveData<DetailUIState> get() = _detailState
 
     private val SECONDS_TO_MILLIS = 1000L
+    private val PREFS_NAME = "WeatherAppPrefs"
+    private val PREFS_KEY_CITIES = "cities"
+    private val WEATHER_ICON_URL = "https://openweathermap.org/img/wn/%s.png"
 
     fun addCity(cityName: String, context: Context) {
         viewModelScope.launch {
@@ -89,13 +92,13 @@ class WeatherViewModel : ViewModel() {
     }
 
     private fun saveCities(context: Context, cityNames: List<String>) {
-        val prefs = context.getSharedPreferences(Constants.PREFS_NAME, Context.MODE_PRIVATE)
-        prefs.edit().putStringSet(Constants.PREFS_KEY_CITIES, cityNames.toSet()).apply()
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit().putStringSet(PREFS_KEY_CITIES, cityNames.toSet()).apply()
     }
 
     private fun getCitiesFromPrefs(context: Context): List<String> {
-        val prefs = context.getSharedPreferences(Constants.PREFS_NAME, Context.MODE_PRIVATE)
-        return prefs.getStringSet(Constants.PREFS_KEY_CITIES, emptySet())?.toList() ?: emptyList()
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getStringSet(PREFS_KEY_CITIES, emptySet())?.toList() ?: emptyList()
     }
 
     fun loadCitiesFromPrefs(context: Context) {
@@ -153,7 +156,7 @@ class WeatherViewModel : ViewModel() {
                 val uiForecast = dailyForecasts.take(6).map {
                     ForecastUI(
                         dayOfWeek = SimpleDateFormat("E", Locale("ru")).format(Date(it.dt * SECONDS_TO_MILLIS)).uppercase(),
-                        iconUrl = Constants.WEATHER_ICON_URL.format(it.weather[0].icon),
+                        iconUrl = WEATHER_ICON_URL.format(it.weather[0].icon),
                         tempMax = context.getString(R.string.temperature_format, it.main.tempMax.toInt()),
                         tempMin = context.getString(R.string.temperature_format, it.main.tempMin.toInt())
                     )
@@ -161,7 +164,7 @@ class WeatherViewModel : ViewModel() {
 
                 _detailState.value = DetailUIState.Success(
                     temperature = context.getString(R.string.temperature_format, weather.main.temp.toInt()),
-                    iconUrl = Constants.WEATHER_ICON_URL.format(weather.weather[0].icon),
+                    iconUrl = WEATHER_ICON_URL.format(weather.weather[0].icon),
                     forecast = uiForecast
                 )
             } catch (e: Exception) {
