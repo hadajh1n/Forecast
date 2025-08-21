@@ -1,12 +1,10 @@
 package com.example.forecast.viewmodel
 
 import android.content.Context
-import android.widget.Toast
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.forecast.Constants
 import com.example.forecast.R
 import com.example.forecast.dataclass.CurrentWeather
 import com.example.forecast.dataclass.ForecastItem
@@ -44,24 +42,29 @@ class WeatherViewModel : ViewModel() {
     private val _detailState = MutableLiveData<DetailUIState>()
     val detailState: LiveData<DetailUIState> get() = _detailState
 
+    private val _errorMessage = MutableLiveData<String>()
+    val errorMessage : LiveData<String> get() = _errorMessage
+
     private val SECONDS_TO_MILLIS = 1000L
     private val PREFS_NAME = "WeatherAppPrefs"
     private val PREFS_KEY_CITIES = "cities"
     private val WEATHER_ICON_URL = "https://openweathermap.org/img/wn/%s.png"
 
+    private fun getApiKey(context: Context) : String {
+        val apiKey = context.getString(R.string.weather_api_key)
+        if (apiKey.isEmpty()) {
+            throw IllegalStateException(context.getString(R.string.error_api_key_missing))
+        }
+        return apiKey
+    }
+
     fun addCity(cityName: String, context: Context) {
         viewModelScope.launch {
             try {
-                val apiKey = context.getString(R.string.weather_api_key)
-                if (apiKey.isEmpty()) {
-                    _uiState.value = MainUIState.Error(context.getString(R.string.error_api_key_missing))
-                    return@launch
-                }
-
+                val apiKey = getApiKey(context)
                 val currentCities = getCitiesFromPrefs(context).toMutableList()
-
                 if (currentCities.any { it.equals(cityName, ignoreCase = true) }) {
-                    Toast.makeText(context, context.getString(R.string.error_city_already_added), Toast.LENGTH_SHORT).show()
+                    _errorMessage.value = context.getString(R.string.error_city_already_added)
                     return@launch
                 }
 
@@ -105,11 +108,7 @@ class WeatherViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = MainUIState.Loading
             try {
-                val apiKey = context.getString(R.string.weather_api_key)
-                if (apiKey.isEmpty()) {
-                    _uiState.value = MainUIState.Error(context.getString(R.string.error_api_key_missing))
-                    return@launch
-                }
+                val apiKey = getApiKey(context)
                 val cityNames = getCitiesFromPrefs(context)
 
                 if (cityNames.isEmpty()) {
@@ -144,11 +143,7 @@ class WeatherViewModel : ViewModel() {
         viewModelScope.launch {
             _detailState.value = DetailUIState.Loading
             try {
-                val apiKey = context.getString(R.string.weather_api_key)
-                if (apiKey.isEmpty()) {
-                    _detailState.value = DetailUIState.Error(context.getString(R.string.error_api_key_missing))
-                    return@launch
-                }
+                val apiKey = getApiKey(context)
                 val weather = RetrofitClient.weatherApi.getCurrentWeather(cityName, apiKey)
                 val forecastResponse = RetrofitClient.weatherApi.getForecast(cityName, apiKey)
 

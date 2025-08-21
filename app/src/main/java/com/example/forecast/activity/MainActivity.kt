@@ -7,6 +7,7 @@ import android.text.TextWatcher
 import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.AutoCompleteTextView
+import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -42,9 +43,26 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        setupRecyclerView()         // Функция настройки RecycleView
+        observeViewModelState()     // Функция подписки на состояния viewModel (загрузка, успех, ошибка)
+        observeMessageError()       // Функция подписки на ошибки Toast
+        setupItemTouchHelper()      // Функция удаления города свайпом
+        setupAddCityButton()        // Функция обработки кнопки для добавления города
+        setupRetryButton()          // Функция обработки кнопки для повторного подключения (ошибка)
+        restoreDialogState(savedInstanceState)  // Функция восстановления состояния диалогового окна
+        viewModel.loadCitiesFromPrefs(this@MainActivity)   // Загрузка городов из SharedPrefs
+    }
+
+
+    // Функция настройки RecycleView
+    private fun setupRecyclerView() {
         binding.rvCity.adapter = cityAdapter
         binding.rvCity.layoutManager = LinearLayoutManager(this@MainActivity)
+    }
 
+
+    // Функция подписки на состояния viewModel (загрузка, успех, ошибка)
+    private fun observeViewModelState() {
         viewModel.uiState.observe(this@MainActivity) { state ->
             when (state) {
                 is MainUIState.Loading -> {
@@ -77,11 +95,19 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+    }
 
-        binding.btnRetry.setOnClickListener {
-            viewModel.loadCitiesFromPrefs(this@MainActivity)
+
+    // Функция подписки на ошибки Toast
+    private fun observeMessageError() {
+        viewModel.errorMessage.observe(this@MainActivity) { message ->
+            Toast.makeText(this@MainActivity, message, Toast.LENGTH_SHORT).show()
         }
+    }
 
+
+    // Функция удаления города свайпом
+    private fun setupItemTouchHelper() {
         val itemTouchHelperCallback = object : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
             override fun onMove(
                 recyclerView: RecyclerView,
@@ -101,13 +127,27 @@ class MainActivity : AppCompatActivity() {
         }
         val itemTouchHelper = ItemTouchHelper(itemTouchHelperCallback)
         itemTouchHelper.attachToRecyclerView(binding.rvCity)
+    }
 
-        viewModel.loadCitiesFromPrefs(this@MainActivity)
 
+    // Функция обработки кнопки для добавления города
+    private fun setupAddCityButton() {
         binding.btnAddCity.setOnClickListener {
             showAddCityDialog()
         }
+    }
 
+
+    // Функция обработки кнопки для повторного подключения (ошибка)
+    private fun setupRetryButton() {
+        binding.btnRetry.setOnClickListener {
+            viewModel.loadCitiesFromPrefs(this@MainActivity)
+        }
+    }
+
+
+    // Функция восстановления состояния диалогового окна
+    private fun restoreDialogState(savedInstanceState: Bundle?) {
         if (savedInstanceState != null) {
             val showDialog = savedInstanceState.getBoolean(SHOW_DIALOG, false)
             dialogInputText = savedInstanceState.getString(DIALOG_INPUT_NAME)
@@ -117,12 +157,16 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+
+    // Функция сохранения текущего состояния диалога
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putBoolean(SHOW_DIALOG, dialog?.isShowing == true)
         outState.putString(DIALOG_INPUT_NAME, dialogInputText)
     }
 
+
+    // Функция настройки диалога
     private fun showAddCityDialog() {
         val builder = AlertDialog.Builder(this@MainActivity, R.style.CustomAlertDialog)
         builder.setTitle(R.string.add_city_dialog_title)
