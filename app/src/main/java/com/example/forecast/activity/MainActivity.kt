@@ -18,15 +18,12 @@ import com.example.forecast.Constants
 import com.example.forecast.R
 import com.example.forecast.adapter.CityAdapter
 import com.example.forecast.databinding.ActivityMainBinding
-import com.example.forecast.viewmodel.MainUIState
-import com.example.forecast.viewmodel.WeatherViewModel
+import com.example.forecast.viewModel.MainUIState
+import com.example.forecast.viewModel.MainViewModel
 
 class MainActivity : AppCompatActivity() {
-    private val viewModel: WeatherViewModel by viewModels()
+    private val viewModel: MainViewModel by viewModels()
     private lateinit var binding: ActivityMainBinding
-
-    private val SHOW_DIALOG = "showDialog"
-    private val DIALOG_INPUT_NAME = "dialogInputText"
 
     private val cityAdapter = CityAdapter { currentWeather ->
         val intent = Intent(this, DetailActivity::class.java).apply {
@@ -35,8 +32,12 @@ class MainActivity : AppCompatActivity() {
         startActivity(intent)
     }
 
+    private val SHOW_DIALOG = "showDialog"
+    private val DIALOG_INPUT_NAME = "dialogInputText"
+
     private var dialog: AlertDialog? = null
     private var dialogInputText: String? = null
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

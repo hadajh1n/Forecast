@@ -10,14 +10,15 @@ import com.example.forecast.Constants
 import com.example.forecast.R
 import com.example.forecast.adapter.DetailAdapter
 import com.example.forecast.databinding.ActivityDetailBinding
-import com.example.forecast.viewmodel.DetailUIState
-import com.example.forecast.viewmodel.WeatherViewModel
+import com.example.forecast.viewModel.DetailUIState
+import com.example.forecast.viewModel.DetailViewModel
 
 class DetailActivity : AppCompatActivity() {
+    private val viewModel: DetailViewModel by viewModels()
     private lateinit var binding: ActivityDetailBinding
-    private val viewModel: WeatherViewModel by viewModels()
     private val detailAdapter = DetailAdapter()
     private lateinit var cityName : String
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
