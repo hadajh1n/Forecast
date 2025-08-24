@@ -32,21 +32,19 @@ class DetailViewModel : ViewModel() {
     private val _detailState = MutableLiveData<DetailUIState>()
     val detailState: LiveData<DetailUIState> get() = _detailState
 
-    private val SECONDS_TO_MILLIS = 1000L
-    private val WEATHER_ICON_URL = "https://openweathermap.org/img/wn/%s.png"
+    companion object {
+        private const val SECONDS_TO_MILLIS = 1000L
+        private const val WEATHER_ICON_URL = "https://openweathermap.org/img/wn/%s.png"
+    }
 
-
-    // Функция получения API-ключа для погоды
     private fun getApiKey(context: Context) : String {
         val apiKey = context.getString(R.string.weather_api_key)
         if (apiKey.isEmpty()) {
-            throw IllegalStateException(context.getString(R.string.error_api_key_missing))
+            throw IllegalStateException("Missing API key")
         }
         return apiKey
     }
 
-
-    // Функция загрузки подробной информации о погоде города и прогноза
     fun loadCityDetail(cityName: String, context: Context) {
         viewModelScope.launch {
             _detailState.value = DetailUIState.Loading
@@ -80,8 +78,6 @@ class DetailViewModel : ViewModel() {
         }
     }
 
-
-    // Функция группировки прогноза по дням и вычисление min max температуры
     private fun groupForecastByDay(response: ForecastWeather): List<ForecastItem> {
         val calendar = Calendar.getInstance()
         calendar.add(Calendar.DAY_OF_YEAR, 1)

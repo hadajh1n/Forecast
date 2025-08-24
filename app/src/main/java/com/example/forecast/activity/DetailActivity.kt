@@ -19,35 +19,28 @@ class DetailActivity : AppCompatActivity() {
     private val detailAdapter = DetailAdapter()
     private lateinit var cityName : String
 
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityDetailBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        setupRecyclerView()     // Функция настройки RecycleView
-        setupCityName()         // Функция получения и отображения имени города
-        observeViewModel()      // Функция подписки на состояния viewModel (загрузка, успех, ошибка)
-        setupRetryButton()      // Функция обработки кнопки для повторного подключения (ошибка)
-        viewModel.loadCityDetail(cityName, this@DetailActivity) // Функция загрузки текущей погоды и прогноза на несколько дней
+        setupRecyclerView()
+        setupCityName()
+        observeViewModel()
+        setupRetryButton()
+        viewModel.loadCityDetail(cityName, this@DetailActivity)
     }
 
-
-    // Функция настройки RecycleView
     private fun setupRecyclerView() {
         binding.rvWeather.adapter = detailAdapter
         binding.rvWeather.layoutManager = LinearLayoutManager(this)
     }
 
-
-    // Функция получения и отображения имени города
     private fun setupCityName() {
         cityName = intent.getStringExtra(Constants.IntentKeys.CITY_NAME) ?: getString(R.string.unknown_city)
         binding.tvCity.text = cityName
     }
 
-
-    // Функция подписки на состояния viewModel (загрузка, успех, ошибка)
     private fun observeViewModel() {
         viewModel.detailState.observe(this@DetailActivity) { state ->
             when (state) {
@@ -85,8 +78,6 @@ class DetailActivity : AppCompatActivity() {
         }
     }
 
-
-    // Функция обработки кнопки для повторного подключения (ошибка)
     private fun setupRetryButton() {
         binding.btnRetry.setOnClickListener {
             viewModel.loadCityDetail(cityName, this@DetailActivity)

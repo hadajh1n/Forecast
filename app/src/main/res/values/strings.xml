@@ -16,7 +16,6 @@
     <string name="error_fetch_current_weather">Не удалось загрузить текущую погоду! Проверьте наличие Интернета</string>
     <string name="error_fetch_forecast">Не удалось загрузить прогноз</string>
     <string name="unknown_city">Неизвестный город</string>
-    <string name="error_api_key_missing">Ошибка приложения. Попробуйте позже!</string>
     <string name="error_loading_data">Ошибка загрузки данных</string>
     <string name="error_no_data">Нет данных</string>
     // Формат температуры

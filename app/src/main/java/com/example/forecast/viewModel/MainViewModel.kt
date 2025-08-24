@@ -23,21 +23,19 @@ class MainViewModel : ViewModel() {
     private val _errorMessage = MutableLiveData<String>()
     val errorMessage : LiveData<String> get() = _errorMessage
 
-    private val PREFS_NAME = "WeatherAppPrefs"
-    private val PREFS_KEY_CITIES = "cities"
+    companion object {
+        private const val PREFS_NAME = "WeatherAppPrefs"
+        private const val PREFS_KEY_CITIES = "cities"
+    }
 
-
-    // Функция получения API-ключа для погоды
     private fun getApiKey(context: Context) : String {
         val apiKey = context.getString(R.string.weather_api_key)
         if (apiKey.isEmpty()) {
-            throw IllegalStateException(context.getString(R.string.error_api_key_missing))
+            throw IllegalStateException("Missing API key")
         }
         return apiKey
     }
 
-
-    // Функция добавления города и загрузка его погоды
     fun addCity(cityName: String, context: Context) {
         viewModelScope.launch {
             try {
@@ -65,8 +63,6 @@ class MainViewModel : ViewModel() {
         }
     }
 
-
-    // Функция загрузки погоды для списка городов
     private suspend fun loadWeatherForCities(cityNames: List<String>, apiKey: String): List<CurrentWeather> {
         val currentCities = mutableListOf<CurrentWeather>()
         for (name in cityNames) {
@@ -76,22 +72,16 @@ class MainViewModel : ViewModel() {
         return currentCities
     }
 
-
-    // Функция сохранения списка городов в SharedPreferences
     private fun saveCities(context: Context, cityNames: List<String>) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.edit().putStringSet(PREFS_KEY_CITIES, cityNames.toSet()).apply()
     }
 
-
-    // Функция получения списка городов из SharedPreferences
     private fun getCitiesFromPrefs(context: Context): List<String> {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         return prefs.getStringSet(PREFS_KEY_CITIES, emptySet())?.toList() ?: emptyList()
     }
 
-
-    // Функция загрузки городов из SharedPreferences с обновлением погоды
     fun loadCitiesFromPrefs(context: Context) {
         viewModelScope.launch {
             _uiState.value = MainUIState.Loading
@@ -113,8 +103,6 @@ class MainViewModel : ViewModel() {
         }
     }
 
-
-    // Функция удаления города из списка и обновление UI
     fun removeCity(cityName: String, context: Context) {
         val currentCities = getCitiesFromPrefs(context).toMutableList()
         currentCities.removeAll { it.equals(cityName, ignoreCase = true) }

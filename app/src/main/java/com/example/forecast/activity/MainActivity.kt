@@ -32,37 +32,34 @@ class MainActivity : AppCompatActivity() {
         startActivity(intent)
     }
 
-    private val SHOW_DIALOG = "showDialog"
-    private val DIALOG_INPUT_NAME = "dialogInputText"
+    companion object {
+        private const val SHOW_DIALOG = "showDialog"
+        private const val DIALOG_INPUT_NAME = "dialogInputText"
+    }
 
     private var dialog: AlertDialog? = null
     private var dialogInputText: String? = null
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        setupRecyclerView()         // Функция настройки RecycleView
-        observeViewModelState()     // Функция подписки на состояния viewModel (загрузка, успех, ошибка)
-        observeMessageError()       // Функция подписки на ошибки Toast
-        setupItemTouchHelper()      // Функция удаления города свайпом
-        setupAddCityButton()        // Функция обработки кнопки для добавления города
-        setupRetryButton()          // Функция обработки кнопки для повторного подключения (ошибка)
-        restoreDialogState(savedInstanceState)  // Функция восстановления состояния диалогового окна
-        viewModel.loadCitiesFromPrefs(this@MainActivity)   // Загрузка городов из SharedPrefs
+        setupRecyclerView()
+        observeViewModelState()
+        observeMessageError()
+        setupItemTouchHelper()
+        setupAddCityButton()
+        setupRetryButton()
+        restoreDialogState(savedInstanceState)
+        viewModel.loadCitiesFromPrefs(this@MainActivity)
     }
 
-
-    // Функция настройки RecycleView
     private fun setupRecyclerView() {
         binding.rvCity.adapter = cityAdapter
         binding.rvCity.layoutManager = LinearLayoutManager(this@MainActivity)
     }
 
-
-    // Функция подписки на состояния viewModel (загрузка, успех, ошибка)
     private fun observeViewModelState() {
         viewModel.uiState.observe(this@MainActivity) { state ->
             when (state) {
@@ -98,16 +95,12 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-
-    // Функция подписки на ошибки Toast
     private fun observeMessageError() {
         viewModel.errorMessage.observe(this@MainActivity) { message ->
             Toast.makeText(this@MainActivity, message, Toast.LENGTH_SHORT).show()
         }
     }
 
-
-    // Функция удаления города свайпом
     private fun setupItemTouchHelper() {
         val itemTouchHelperCallback = object : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
             override fun onMove(
@@ -130,24 +123,18 @@ class MainActivity : AppCompatActivity() {
         itemTouchHelper.attachToRecyclerView(binding.rvCity)
     }
 
-
-    // Функция обработки кнопки для добавления города
     private fun setupAddCityButton() {
         binding.btnAddCity.setOnClickListener {
             showAddCityDialog()
         }
     }
 
-
-    // Функция обработки кнопки для повторного подключения (ошибка)
     private fun setupRetryButton() {
         binding.btnRetry.setOnClickListener {
             viewModel.loadCitiesFromPrefs(this@MainActivity)
         }
     }
 
-
-    // Функция восстановления состояния диалогового окна
     private fun restoreDialogState(savedInstanceState: Bundle?) {
         if (savedInstanceState != null) {
             val showDialog = savedInstanceState.getBoolean(SHOW_DIALOG, false)
@@ -158,16 +145,12 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-
-    // Функция сохранения текущего состояния диалога
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putBoolean(SHOW_DIALOG, dialog?.isShowing == true)
         outState.putString(DIALOG_INPUT_NAME, dialogInputText)
     }
 
-
-    // Функция настройки диалога
     private fun showAddCityDialog() {
         val builder = AlertDialog.Builder(this@MainActivity, R.style.CustomAlertDialog)
         builder.setTitle(R.string.add_city_dialog_title)
