@@ -1,48 +1,56 @@
-package com.example.forecast.activity
+package com.example.forecast.fragments
 
 import android.os.Bundle
+import androidx.fragment.app.Fragment
+import android.view.LayoutInflater
 import android.view.View
-import androidx.activity.viewModels
-import androidx.appcompat.app.AppCompatActivity
+import android.view.ViewGroup
+import com.example.forecast.R
+import com.example.forecast.adapter.DetailAdapter
+import com.example.forecast.viewModel.DetailViewModel
+import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.example.forecast.Constants
-import com.example.forecast.R
-import com.example.forecast.adapter.DetailAdapter
-import com.example.forecast.databinding.ActivityDetailBinding
+import com.example.forecast.databinding.FragmentDetailBinding
 import com.example.forecast.viewModel.DetailUIState
-import com.example.forecast.viewModel.DetailViewModel
 
-class DetailActivity : AppCompatActivity() {
+class DetailFragment : Fragment() {
+    private lateinit var binding: FragmentDetailBinding
     private val viewModel: DetailViewModel by viewModels()
-    private lateinit var binding: ActivityDetailBinding
     private val detailAdapter = DetailAdapter()
     private lateinit var cityName : String
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        binding = ActivityDetailBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        binding = FragmentDetailBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
 
         setupRecyclerView()
         setupCityName()
         observeViewModel()
         setupRetryButton()
-        viewModel.loadCityDetail(cityName, this@DetailActivity)
+        viewModel.loadCityDetail(cityName, requireContext())
     }
 
     private fun setupRecyclerView() {
         binding.rvWeather.adapter = detailAdapter
-        binding.rvWeather.layoutManager = LinearLayoutManager(this)
+        binding.rvWeather.layoutManager = LinearLayoutManager(requireContext())
     }
 
     private fun setupCityName() {
-        cityName = intent.getStringExtra(Constants.IntentKeys.CITY_NAME) ?: getString(R.string.unknown_city)
+        cityName = arguments?.getString(Constants.IntentKeys.CITY_NAME) ?: getString(R.string.unknown_city)
         binding.tvCity.text = cityName
     }
 
     private fun observeViewModel() {
-        viewModel.detailState.observe(this@DetailActivity) { state ->
+        viewModel.detailState.observe(viewLifecycleOwner) { state ->
             when (state) {
                 is DetailUIState.Loading -> {
                     binding.progressBar.visibility = View.VISIBLE
@@ -80,7 +88,7 @@ class DetailActivity : AppCompatActivity() {
 
     private fun setupRetryButton() {
         binding.btnRetry.setOnClickListener {
-            viewModel.loadCityDetail(cityName, this@DetailActivity)
+            viewModel.loadCityDetail(cityName, requireContext())
         }
     }
 }
