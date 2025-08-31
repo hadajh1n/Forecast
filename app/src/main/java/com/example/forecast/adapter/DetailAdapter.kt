@@ -11,16 +11,24 @@ import com.example.forecast.dataclass.ForecastUI
 
 class DetailAdapter: RecyclerView.Adapter<DetailAdapter.DetailViewHolder>() {
 
-    val detailList = ArrayList<ForecastUI>()
+    val detailList = mutableListOf<ForecastUI>()
 
-    class DetailViewHolder(item : View): RecyclerView.ViewHolder(item) {
-        private val binding = ItemDetailBinding.bind(item)
+    fun updateDetails(newDetails: List<ForecastUI>) {
+        detailList.clear()
+        detailList.addAll(newDetails)
+        notifyDataSetChanged()
+    }
+
+    inner class DetailViewHolder(view : View): RecyclerView.ViewHolder(view) {
+        private val binding = ItemDetailBinding.bind(view)
 
         fun bind(forecast: ForecastUI) = with(binding) {
             tvDayWeek.text = forecast.dayOfWeek
+
             Glide.with(itemView.context)
                 .load(forecast.iconUrl)
                 .into(imDayWeek)
+
             tvMaxTemperature.text = forecast.tempMax
             tvMinTemperature.text = forecast.tempMin
         }

@@ -12,21 +12,23 @@ import kotlinx.coroutines.launch
 
 sealed class MainUIState {
     object Loading : MainUIState()
+
     data class Success(val cities: List<CurrentWeather>) : MainUIState()
     data class Error(val message: String) : MainUIState()
 }
 
 class MainViewModel : ViewModel() {
-    private val _uiState = MutableLiveData<MainUIState>()
-    val uiState: LiveData<MainUIState> get() = _uiState
-
-    private val _errorMessage = MutableLiveData<String>()
-    val errorMessage : LiveData<String> get() = _errorMessage
 
     companion object {
         private const val PREFS_NAME = "WeatherAppPrefs"
         private const val PREFS_KEY_CITIES = "cities"
     }
+
+    private val _uiState = MutableLiveData<MainUIState>()
+    val uiState: LiveData<MainUIState> get() = _uiState
+
+    private val _errorMessage = MutableLiveData<String>()
+    val errorMessage : LiveData<String> get() = _errorMessage
 
     private fun getApiKey(context: Context) : String {
         val apiKey = context.getString(R.string.weather_api_key)
@@ -63,7 +65,10 @@ class MainViewModel : ViewModel() {
         }
     }
 
-    private suspend fun loadWeatherForCities(cityNames: List<String>, apiKey: String): List<CurrentWeather> {
+    private suspend fun loadWeatherForCities(
+        cityNames: List<String>,
+        apiKey: String
+    ): List<CurrentWeather> {
         val currentCities = mutableListOf<CurrentWeather>()
         for (name in cityNames) {
             val weather = RetrofitClient.weatherApi.getCurrentWeather(name, apiKey)
@@ -110,7 +115,9 @@ class MainViewModel : ViewModel() {
 
         val currentState = _uiState.value
         if (currentState is MainUIState.Success) {
-            val updatedCities = currentState.cities.filter { !it.name.equals(cityName, ignoreCase = true) }
+            val updatedCities = currentState.cities.filter {
+                !it.name.equals(cityName, ignoreCase = true)
+            }
             _uiState.value = MainUIState.Success(updatedCities)
         } else if (currentCities.isEmpty()) {
             _uiState.value = MainUIState.Success(emptyList())

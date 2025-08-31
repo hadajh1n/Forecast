@@ -20,22 +20,25 @@ import java.util.Locale
 
 sealed class DetailUIState {
     object Loading : DetailUIState()
+
     data class Success(
         val temperature: String,
         val iconUrl: String,
         val forecast: List<ForecastUI>
     ) : DetailUIState()
+
     data class Error(val message: String) : DetailUIState()
 }
 
 class DetailViewModel : ViewModel() {
-    private val _detailState = MutableLiveData<DetailUIState>()
-    val detailState: LiveData<DetailUIState> get() = _detailState
 
     companion object {
         private const val SECONDS_TO_MILLIS = 1000L
         private const val WEATHER_ICON_URL = "https://openweathermap.org/img/wn/%s.png"
     }
+
+    private val _detailState = MutableLiveData<DetailUIState>()
+    val detailState: LiveData<DetailUIState> get() = _detailState
 
     private fun getApiKey(context: Context) : String {
         val apiKey = context.getString(R.string.weather_api_key)
@@ -54,14 +57,24 @@ class DetailViewModel : ViewModel() {
                 val forecastResponse = RetrofitClient.weatherApi.getForecast(cityName, apiKey)
 
                 val dailyForecasts = groupForecastByDay(forecastResponse)
-                val uiForecast = dailyForecasts.take(6).map {
-                    ForecastUI(
-                        dayOfWeek = SimpleDateFormat("E", Locale("ru")).format(Date(it.dt * SECONDS_TO_MILLIS)).uppercase(),
-                        iconUrl = WEATHER_ICON_URL.format(it.weather[0].icon),
-                        tempMax = context.getString(R.string.temperature_format, it.main.tempMax.toInt()),
-                        tempMin = context.getString(R.string.temperature_format, it.main.tempMin.toInt())
-                    )
-                }
+                val uiForecast = dailyForecasts
+                    .take(6)
+                    .map {
+                        ForecastUI(
+                            dayOfWeek = SimpleDateFormat("E", Locale("ru"))
+                                .format(Date(it.dt * SECONDS_TO_MILLIS))
+                                .uppercase(),
+                            iconUrl = WEATHER_ICON_URL.format(it.weather[0].icon),
+                            tempMax = context.getString(
+                                R.string.temperature_format,
+                                it.main.tempMax.toInt(),
+                            ),
+                            tempMin = context.getString(
+                                R.string.temperature_format,
+                                it.main.tempMin.toInt(),
+                            )
+                        )
+                    }
 
                 _detailState.value = DetailUIState.Success(
                     temperature = context.getString(
@@ -69,11 +82,12 @@ class DetailViewModel : ViewModel() {
                         weather.main.temp.toInt()
                     ),
                     iconUrl = WEATHER_ICON_URL.format(weather.weather[0].icon),
-                    forecast = uiForecast
+                    forecast = uiForecast,
                 )
             } catch (e: Exception) {
-                _detailState.value =
-                    DetailUIState.Error(context.getString(R.string.error_fetch_current_weather))
+                _detailState.value = DetailUIState.Error(
+                    context.getString(R.string.error_fetch_current_weather),
+                )
             }
         }
     }

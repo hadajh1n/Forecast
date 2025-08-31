@@ -10,16 +10,34 @@ import com.example.forecast.databinding.ItemCityBinding
 import com.example.forecast.dataclass.CurrentWeather
 import kotlin.math.roundToInt
 
-class CityAdapter(private val onItemClick: (CurrentWeather) -> Unit) : RecyclerView.Adapter<CityAdapter.WeatherViewHolder>() {
+class CityAdapter(
+    private val onItemClick: (CurrentWeather) -> Unit,
+) : RecyclerView.Adapter<CityAdapter.WeatherViewHolder>() {
 
-    val cityList = ArrayList<CurrentWeather>()
+    val cityList = mutableListOf<CurrentWeather>()
 
-    inner class WeatherViewHolder(item: View) : RecyclerView.ViewHolder(item) {
-        private val binding = ItemCityBinding.bind(item)
+    fun updateCities(newCities: List<CurrentWeather>) {
+        cityList.clear()
+        cityList.addAll(newCities)
+        notifyDataSetChanged()
+    }
+
+    fun removeCity(position: Int): CurrentWeather {
+        val city = cityList[position]
+        cityList.removeAt(position)
+        notifyItemRemoved(position)
+        return city
+    }
+
+    inner class WeatherViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        private val binding = ItemCityBinding.bind(view)
 
         fun bind(currentWeather: CurrentWeather, context: Context) = with(binding) {
             tvCity.text = currentWeather.name
-            tvTemperature.text = context.getString(R.string.temperature_format, currentWeather.main.temp.roundToInt())
+            tvTemperature.text = context.getString(
+                R.string.temperature_format,
+                currentWeather.main.temp.roundToInt(),
+            )
 
             root.setOnClickListener {
                 onItemClick(currentWeather)
@@ -37,5 +55,5 @@ class CityAdapter(private val onItemClick: (CurrentWeather) -> Unit) : RecyclerV
         holder.bind(cityList[position], holder.itemView.context)
     }
 
-    override fun getItemCount() = cityList.size
+    override fun getItemCount(): Int = cityList.size
 }

@@ -1,15 +1,15 @@
 package com.example.forecast.dataclass
 
 data class CurrentWeather(
-    val name: String,           // Название города
+    val name: String,
     val main: Main,
-    val weather: List<Weather>  // Список погодных условий
+    val weather: List<Weather>
 )
 
 data class Main(
-    val temp: Float             // Текущая температура
+    val temp: Float
 )
 
 data class Weather(
-    val icon: String            // Код иконки погоды
+    val icon: String
 )

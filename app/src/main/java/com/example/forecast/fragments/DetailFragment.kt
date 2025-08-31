@@ -16,17 +16,24 @@ import com.example.forecast.databinding.FragmentDetailBinding
 import com.example.forecast.viewModel.DetailUIState
 
 class DetailFragment : Fragment() {
-    private lateinit var binding: FragmentDetailBinding
+
+    private var _binding : FragmentDetailBinding? = null
+    private val binding get() = _binding!!
     private val viewModel: DetailViewModel by viewModels()
     private val detailAdapter = DetailAdapter()
-    private lateinit var cityName : String
+
+    private val cityName : String by lazy {
+        arguments?.getString(Constants.IntentKeys.CITY_NAME) ?: getString(R.string.unknown_city)
+    }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View? {
-        binding = FragmentDetailBinding.inflate(inflater, container, false)
-        return binding.root
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
+    ) : View? {
+        _binding = FragmentDetailBinding.inflate(inflater, container, false)
+        val view = binding.root
+        return view
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -36,54 +43,64 @@ class DetailFragment : Fragment() {
         setupCityName()
         observeViewModel()
         setupRetryButton()
+
         viewModel.loadCityDetail(cityName, requireContext())
     }
 
-    private fun setupRecyclerView() {
-        binding.rvWeather.adapter = detailAdapter
-        binding.rvWeather.layoutManager = LinearLayoutManager(requireContext())
+    override fun onDestroyView() {
+        super.onDestroyView()
+        Glide.with(binding.imWeather).clear(binding.imWeather)
+        _binding = null
+    }
+
+    private fun setupRecyclerView() = with(binding) {
+        rvWeather.adapter = detailAdapter
+        rvWeather.layoutManager = LinearLayoutManager(requireContext())
     }
 
     private fun setupCityName() {
-        cityName = arguments?.getString(Constants.IntentKeys.CITY_NAME) ?: getString(R.string.unknown_city)
         binding.tvCity.text = cityName
     }
 
     private fun observeViewModel() {
         viewModel.detailState.observe(viewLifecycleOwner) { state ->
             when (state) {
-                is DetailUIState.Loading -> {
-                    binding.progressBar.visibility = View.VISIBLE
-                    binding.contentContainer.visibility = View.GONE
-                    binding.errorContainer.visibility = View.GONE
-                }
-                is DetailUIState.Success -> {
-                    binding.progressBar.visibility = View.GONE
-                    binding.errorContainer.visibility = View.GONE
-
-                    if (state.forecast.isEmpty()) {
-                        binding.contentContainer.visibility = View.GONE
-                    } else {
-                        binding.contentContainer.visibility = View.VISIBLE
-
-                        binding.tvTemperature.text = state.temperature
-                        Glide.with(this)
-                            .load(state.iconUrl)
-                            .into(binding.imWeather)
-
-                        detailAdapter.detailList.clear()
-                        detailAdapter.detailList.addAll(state.forecast)
-                        detailAdapter.notifyDataSetChanged()
-                    }
-                }
-                is DetailUIState.Error -> {
-                    binding.progressBar.visibility = View.GONE
-                    binding.contentContainer.visibility = View.GONE
-                    binding.errorContainer.visibility = View.VISIBLE
-                    binding.tvError.text = state.message
-                }
+                is DetailUIState.Loading -> handleLoadingState()
+                is DetailUIState.Success -> handleSuccessState(state)
+                is DetailUIState.Error -> handleErrorState(state)
             }
         }
+    }
+
+    private fun handleLoadingState() = with(binding) {
+        progressBar.visibility = View.VISIBLE
+        contentContainer.visibility = View.GONE
+        errorContainer.visibility = View.GONE
+    }
+
+    private fun handleSuccessState(state: DetailUIState.Success) = with(binding) {
+        progressBar.visibility = View.GONE
+        errorContainer.visibility = View.GONE
+
+        if (state.forecast.isEmpty()) {
+            contentContainer.visibility = View.GONE
+        } else {
+            contentContainer.visibility = View.VISIBLE
+            tvTemperature.text = state.temperature
+
+            Glide.with(this@DetailFragment)
+                .load(state.iconUrl)
+                .into(imWeather)
+
+            detailAdapter.updateDetails(state.forecast)
+        }
+    }
+
+    private fun handleErrorState(state: DetailUIState.Error) = with(binding) {
+        progressBar.visibility = View.GONE
+        contentContainer.visibility = View.GONE
+        errorContainer.visibility = View.VISIBLE
+        tvError.text = state.message
     }
 
     private fun setupRetryButton() {
