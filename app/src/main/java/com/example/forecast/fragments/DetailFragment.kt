@@ -5,13 +5,13 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import com.example.forecast.R
 import com.example.forecast.adapter.DetailAdapter
 import com.example.forecast.viewModel.DetailViewModel
 import androidx.fragment.app.viewModels
+import androidx.navigation.fragment.navArgs
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
-import com.example.forecast.Constants
+import com.example.forecast.R
 import com.example.forecast.databinding.FragmentDetailBinding
 import com.example.forecast.viewModel.DetailUIState
 
@@ -22,9 +22,8 @@ class DetailFragment : Fragment() {
     private val viewModel: DetailViewModel by viewModels()
     private val detailAdapter = DetailAdapter()
 
-    private val cityName : String by lazy {
-        arguments?.getString(Constants.IntentKeys.CITY_NAME) ?: getString(R.string.unknown_city)
-    }
+    private val args: DetailFragmentArgs by navArgs()
+    private val cityName: String by lazy { args.cityName }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -59,7 +58,7 @@ class DetailFragment : Fragment() {
     }
 
     private fun setupCityName() {
-        binding.tvCity.text = cityName
+        binding.tvCity.text = cityName.takeIf { it.isNotEmpty() } ?: getString(R.string.unknown_city)
     }
 
     private fun observeViewModel() {

@@ -12,10 +12,10 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.forecast.Constants
 import com.example.forecast.R
 import com.example.forecast.adapter.CityAdapter
 import com.example.forecast.databinding.FragmentCityBinding
@@ -34,16 +34,12 @@ class CityFragment : Fragment() {
     private val viewModel: MainViewModel by viewModels()
 
     private val cityAdapter = CityAdapter { currentWeather ->
-        val detailFragment = DetailFragment().apply {
-            arguments = Bundle().apply {
-                putString(Constants.IntentKeys.CITY_NAME, currentWeather.name)
-            }
+        try {
+            val action = CityFragmentDirections
+                .actionCityFragmentToDetailFragment(currentWeather.name)
+            findNavController().navigate(action)
+        } catch (e: IllegalStateException) {
         }
-        parentFragmentManager
-            .beginTransaction()
-            .replace(R.id.fragment_container, detailFragment)
-            .addToBackStack(null)
-            .commit()
     }
 
     private var dialog: AlertDialog? = null

@@ -1,6 +1,8 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.navigation.safeargs)
 }
 
 android {
@@ -59,6 +61,16 @@ dependencies {
 
     // Glide
     implementation(libs.glide)
+
+    // Navigation
+    implementation(libs.navigation.compose)
+    implementation(libs.navigation.fragment)
+    implementation(libs.navigation.ui)
+    implementation(libs.navigation.dynamic.features)
+    androidTestImplementation(libs.navigation.testing)
+
+    // Serialization
+    implementation(libs.serialization.json)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
