@@ -9,7 +9,7 @@ import com.example.forecast.R
 import com.example.forecast.databinding.ItemDetailBinding
 import com.example.forecast.dataclass.ForecastUI
 
-class DetailAdapter: RecyclerView.Adapter<DetailAdapter.DetailViewHolder>() {
+class DetailAdapter : RecyclerView.Adapter<DetailAdapter.DetailViewHolder>() {
 
     val detailList = mutableListOf<ForecastUI>()
 

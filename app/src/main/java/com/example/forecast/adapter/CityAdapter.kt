@@ -11,7 +11,7 @@ import com.example.forecast.dataclass.CurrentWeather
 import kotlin.math.roundToInt
 
 class CityAdapter(
-    private val onItemClick: (CurrentWeather) -> Unit,
+    private val onItemClick: (CurrentWeather) -> Unit
 ) : RecyclerView.Adapter<CityAdapter.WeatherViewHolder>() {
 
     val cityList = mutableListOf<CurrentWeather>()

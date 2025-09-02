@@ -12,7 +12,6 @@ import kotlinx.coroutines.launch
 
 sealed class MainUIState {
     object Loading : MainUIState()
-
     data class Success(val cities: List<CurrentWeather>) : MainUIState()
     data class Error(val message: String) : MainUIState()
 }
@@ -25,9 +24,11 @@ class MainViewModel : ViewModel() {
     }
 
     private val _uiState = MutableLiveData<MainUIState>()
+
     val uiState: LiveData<MainUIState> get() = _uiState
 
     private val _errorMessage = MutableLiveData<String>()
+
     val errorMessage : LiveData<String> get() = _errorMessage
 
     private fun getApiKey(context: Context) : String {
@@ -35,6 +36,7 @@ class MainViewModel : ViewModel() {
         if (apiKey.isEmpty()) {
             throw IllegalStateException("Missing API key")
         }
+
         return apiKey
     }
 
@@ -50,7 +52,6 @@ class MainViewModel : ViewModel() {
 
                 currentCities.add(cityName)
                 saveCities(context, currentCities)
-
                 val weather = RetrofitClient.weatherApi.getCurrentWeather(cityName, apiKey)
                 val currentState = _uiState.value
                 if (currentState is MainUIState.Success) {
@@ -70,10 +71,12 @@ class MainViewModel : ViewModel() {
         apiKey: String
     ): List<CurrentWeather> {
         val currentCities = mutableListOf<CurrentWeather>()
+
         for (name in cityNames) {
             val weather = RetrofitClient.weatherApi.getCurrentWeather(name, apiKey)
             currentCities.add(weather)
         }
+
         return currentCities
     }
 
@@ -93,7 +96,6 @@ class MainViewModel : ViewModel() {
             try {
                 val apiKey = getApiKey(context)
                 val cityNames = getCitiesFromPrefs(context)
-
                 if (cityNames.isEmpty()) {
                     _uiState.value = MainUIState.Success(emptyList())
                     return@launch
@@ -101,7 +103,6 @@ class MainViewModel : ViewModel() {
 
                 val cities = loadWeatherForCities(cityNames, apiKey)
                 _uiState.value = MainUIState.Success(cities)
-
             } catch (e: Exception) {
                 _uiState.value = MainUIState.Error(context.getString(R.string.error_load_cities))
             }
@@ -112,7 +113,6 @@ class MainViewModel : ViewModel() {
         val currentCities = getCitiesFromPrefs(context).toMutableList()
         currentCities.removeAll { it.equals(cityName, ignoreCase = true) }
         saveCities(context, currentCities)
-
         val currentState = _uiState.value
         if (currentState is MainUIState.Success) {
             val updatedCities = currentState.cities.filter {

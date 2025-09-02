@@ -1,11 +1,13 @@
 package com.example.forecast.fragments
 
+import android.content.Context
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.InputMethodManager
 import android.widget.ArrayAdapter
 import android.widget.AutoCompleteTextView
 import android.widget.Toast
@@ -29,7 +31,7 @@ class CityFragment : Fragment() {
         private const val DIALOG_INPUT_NAME = "dialogInputText"
     }
 
-    private var _binding : FragmentCityBinding? = null
+    private var _binding: FragmentCityBinding? = null
     private val binding get() = _binding!!
     private val viewModel: MainViewModel by viewModels()
 
@@ -44,17 +46,15 @@ class CityFragment : Fragment() {
 
     private var dialog: AlertDialog? = null
     private var dialogInputText: String? = null
-    private var textWatcher: TextWatcher? = null
     private var dialogInput: AutoCompleteTextView? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ) : View? {
+    ): View {
         _binding = FragmentCityBinding.inflate(inflater, container, false)
-        val view  = binding.root
-        return view
+        return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -71,11 +71,16 @@ class CityFragment : Fragment() {
         viewModel.loadCitiesFromPrefs(requireContext())
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean(SHOW_DIALOG, dialog?.isShowing == true)
+        outState.putString(DIALOG_INPUT_NAME, dialogInput?.text?.toString() ?: dialogInputText)
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         dialog?.dismiss()
         dialog = null
-        textWatcher = null
         dialogInput?.removeTextChangedListener(textWatcher)
         dialogInput = null
         _binding = null
@@ -129,14 +134,15 @@ class CityFragment : Fragment() {
     }
 
     private fun setupItemTouchHelper() {
-        val itemTouchHelperCallback = object :
-            ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
-
+        val itemTouchHelperCallback = object : ItemTouchHelper.SimpleCallback(
+            0,
+            ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT
+        ) {
             override fun onMove(
                 recyclerView: RecyclerView,
                 viewHolder: RecyclerView.ViewHolder,
-                target: RecyclerView.ViewHolder,
-            ) : Boolean = false
+                target: RecyclerView.ViewHolder
+            ): Boolean = false
 
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
                 val position = viewHolder.adapterPosition
@@ -162,69 +168,81 @@ class CityFragment : Fragment() {
 
     private fun restoreDialogState(savedInstanceState: Bundle?) {
         if (savedInstanceState != null) {
-            val showDialog = savedInstanceState.getBoolean(SHOW_DIALOG, false)
             dialogInputText = savedInstanceState.getString(DIALOG_INPUT_NAME)
-
-            if (showDialog) {
+            if (savedInstanceState.getBoolean(SHOW_DIALOG, false)) {
                 showAddCityDialog()
             }
         }
     }
 
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        outState.putBoolean(SHOW_DIALOG, dialog?.isShowing == true)
-        outState.putString(DIALOG_INPUT_NAME, dialogInputText)
+    private val textWatcher = object : TextWatcher {
+        override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+        override fun onTextChanged(s: CharSequence?, start: Int, before: Int, after: Int) {}
+        override fun afterTextChanged(s: Editable?) {
+            dialogInputText = s?.toString()
+        }
     }
 
     private fun showAddCityDialog() {
         val builder = AlertDialog.Builder(requireContext(), R.style.CustomAlertDialog)
         builder.setTitle(R.string.add_city_dialog_title)
-        dialogInput = AutoCompleteTextView(requireContext())
+        dialogInput = AutoCompleteTextView(requireContext()).apply {
+            hint = getString(R.string.add_city_input_hint)
+            isSingleLine = true
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or
+                    android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+            setHintTextColor(resources.getColor(R.color.tvType3))
+            setTextColor(resources.getColor(R.color.black))
+            val padding = resources.getDimensionPixelSize(R.dimen.dialog_padding)
+            setPadding(padding, padding, padding, padding)
+            val cities = resources.getStringArray(R.array.cities)
+            val adapter = ArrayAdapter(
+                requireContext(),
+                android.R.layout.simple_dropdown_item_1line,
+                cities
+            )
+            setAdapter(adapter)
+            threshold = 1
 
-        textWatcher = object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, after: Int) {}
-            override fun afterTextChanged(s: Editable?) {
-                dialogInputText = s?.toString()
+            if (!dialogInputText.isNullOrEmpty()) {
+                setText(dialogInputText)
+                setSelection(dialogInputText!!.length)
+                if (dialogInputText!!.length >= threshold) {
+                    post { showDropDown() }
+                }
+            }
+
+            addTextChangedListener(textWatcher)
+            requestFocus()
+            post {
+                val imm = requireContext().getSystemService(
+                    Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                imm.showSoftInput(this, InputMethodManager.SHOW_IMPLICIT)
             }
         }
-
-        dialogInput?.addTextChangedListener(textWatcher)
-        dialogInput?.hint = getString(R.string.add_city_input_hint)
-        dialogInput?.isSingleLine = true
-        dialogInput?.inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
-        dialogInput?.setHintTextColor(resources.getColor(R.color.tvType3))
-        dialogInput?.setTextColor(resources.getColor(R.color.black))
-        val padding = resources.getDimensionPixelSize(R.dimen.dialog_padding)
-        dialogInput?.setPadding(padding, padding, padding, padding)
-        val cities = resources.getStringArray(R.array.cities)
-        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, cities)
-        dialogInput?.setAdapter(adapter)
-        dialogInput?.threshold = 1
-
-        dialogInputText?.let {
-            dialogInput?.setText(it)
-        }
-
         builder.setView(dialogInput)
 
-        builder.setNegativeButton(R.string.cancel_button) { dialog, _ ->
-            this.dialog = null
+        builder.setNegativeButton(R.string.cancel_button) { _, _ ->
             dialogInputText = null
-            dialog.cancel()
+            dialogInput?.removeTextChangedListener(textWatcher)
+            dialogInput = null
+            dialog = null
         }
 
         dialog = builder.create().apply {
             setCanceledOnTouchOutside(false)
             setCancelable(false)
+            setOnDismissListener {
+                dialogInput?.removeTextChangedListener(textWatcher)
+                dialogInput = null
+                dialog = null
+            }
             show()
             getButton(AlertDialog.BUTTON_NEGATIVE)?.setTextColor(resources.getColor(R.color.black))
         }
 
         dialogInput?.setOnItemClickListener { _, _, position, _ ->
-            val cityName = adapter.getItem(position).toString().trim()
-
+            val cityName = dialogInput?.adapter?.getItem(position).toString().trim()
             if (cityName.isNotEmpty()) {
                 viewModel.addCity(cityName, requireContext())
             }

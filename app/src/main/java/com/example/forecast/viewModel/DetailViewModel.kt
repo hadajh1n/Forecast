@@ -38,6 +38,7 @@ class DetailViewModel : ViewModel() {
     }
 
     private val _detailState = MutableLiveData<DetailUIState>()
+
     val detailState: LiveData<DetailUIState> get() = _detailState
 
     private fun getApiKey(context: Context) : String {
@@ -45,6 +46,7 @@ class DetailViewModel : ViewModel() {
         if (apiKey.isEmpty()) {
             throw IllegalStateException("Missing API key")
         }
+
         return apiKey
     }
 
@@ -55,7 +57,6 @@ class DetailViewModel : ViewModel() {
                 val apiKey = getApiKey(context)
                 val weather = RetrofitClient.weatherApi.getCurrentWeather(cityName, apiKey)
                 val forecastResponse = RetrofitClient.weatherApi.getForecast(cityName, apiKey)
-
                 val dailyForecasts = groupForecastByDay(forecastResponse)
                 val uiForecast = dailyForecasts
                     .take(6)
@@ -67,11 +68,11 @@ class DetailViewModel : ViewModel() {
                             iconUrl = WEATHER_ICON_URL.format(it.weather[0].icon),
                             tempMax = context.getString(
                                 R.string.temperature_format,
-                                it.main.tempMax.toInt(),
+                                it.main.tempMax.toInt()
                             ),
                             tempMin = context.getString(
                                 R.string.temperature_format,
-                                it.main.tempMin.toInt(),
+                                it.main.tempMin.toInt()
                             )
                         )
                     }
@@ -82,7 +83,7 @@ class DetailViewModel : ViewModel() {
                         weather.main.temp.toInt()
                     ),
                     iconUrl = WEATHER_ICON_URL.format(weather.weather[0].icon),
-                    forecast = uiForecast,
+                    forecast = uiForecast
                 )
             } catch (e: Exception) {
                 _detailState.value = DetailUIState.Error(
@@ -96,7 +97,6 @@ class DetailViewModel : ViewModel() {
         val calendar = Calendar.getInstance()
         calendar.add(Calendar.DAY_OF_YEAR, 1)
         val nextDay = calendar.get(Calendar.DAY_OF_YEAR)
-
         val dailyForecasts = mutableListOf<ForecastItem>()
         val groupedByDay = response.list.groupBy { item ->
             val itemCal = Calendar.getInstance()
@@ -120,6 +120,7 @@ class DetailViewModel : ViewModel() {
                 )
             }
         }
+
         return dailyForecasts
     }
 }

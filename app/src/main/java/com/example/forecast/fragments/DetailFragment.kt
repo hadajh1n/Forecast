@@ -21,7 +21,6 @@ class DetailFragment : Fragment() {
     private val binding get() = _binding!!
     private val viewModel: DetailViewModel by viewModels()
     private val detailAdapter = DetailAdapter()
-
     private val args: DetailFragmentArgs by navArgs()
     private val cityName: String by lazy { args.cityName }
 
@@ -58,7 +57,8 @@ class DetailFragment : Fragment() {
     }
 
     private fun setupCityName() {
-        binding.tvCity.text = cityName.takeIf { it.isNotEmpty() } ?: getString(R.string.unknown_city)
+        binding.tvCity.text = cityName.takeIf { it.isNotEmpty() }
+            ?: getString(R.string.unknown_city)
     }
 
     private fun observeViewModel() {
