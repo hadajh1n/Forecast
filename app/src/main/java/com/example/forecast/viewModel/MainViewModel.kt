@@ -31,6 +31,8 @@ class MainViewModel : ViewModel() {
 
     val errorMessage : LiveData<String> get() = _errorMessage
 
+    private var cachedCities: List<CurrentWeather>? = null
+
     private fun getApiKey(context: Context) : String {
         val apiKey = context.getString(R.string.weather_api_key)
         if (apiKey.isEmpty()) {
@@ -53,13 +55,10 @@ class MainViewModel : ViewModel() {
                 currentCities.add(cityName)
                 saveCities(context, currentCities)
                 val weather = RetrofitClient.weatherApi.getCurrentWeather(cityName, apiKey)
-                val currentState = _uiState.value
-                if (currentState is MainUIState.Success) {
-                    val updatedCities = currentState.cities.toMutableList().apply { add(weather) }
-                    _uiState.value = MainUIState.Success(updatedCities)
-                } else {
-                    _uiState.value = MainUIState.Success(listOf(weather))
-                }
+                val updatedCities = (cachedCities ?: emptyList()).toMutableList()
+                updatedCities.add(weather)
+                cachedCities = updatedCities
+                _uiState.value = MainUIState.Success(updatedCities)
             } catch (e: Exception) {
                 _uiState.value = MainUIState.Error(context.getString(R.string.error_load_cities))
             }
@@ -92,6 +91,11 @@ class MainViewModel : ViewModel() {
 
     fun loadCitiesFromPrefs(context: Context) {
         viewModelScope.launch {
+            if (cachedCities != null) {
+                _uiState.value = MainUIState.Success(cachedCities!!)
+                return@launch
+            }
+
             _uiState.value = MainUIState.Loading
             try {
                 val apiKey = getApiKey(context)
@@ -102,6 +106,7 @@ class MainViewModel : ViewModel() {
                 }
 
                 val cities = loadWeatherForCities(cityNames, apiKey)
+                cachedCities = cities
                 _uiState.value = MainUIState.Success(cities)
             } catch (e: Exception) {
                 _uiState.value = MainUIState.Error(context.getString(R.string.error_load_cities))
@@ -113,14 +118,11 @@ class MainViewModel : ViewModel() {
         val currentCities = getCitiesFromPrefs(context).toMutableList()
         currentCities.removeAll { it.equals(cityName, ignoreCase = true) }
         saveCities(context, currentCities)
-        val currentState = _uiState.value
-        if (currentState is MainUIState.Success) {
-            val updatedCities = currentState.cities.filter {
-                !it.name.equals(cityName, ignoreCase = true)
-            }
-            _uiState.value = MainUIState.Success(updatedCities)
-        } else if (currentCities.isEmpty()) {
-            _uiState.value = MainUIState.Success(emptyList())
+
+        val updatedCities = (cachedCities ?: emptyList()).filter {
+            !it.name.equals(cityName, ignoreCase = true)
         }
+        cachedCities = updatedCities
+        _uiState.value = MainUIState.Success(updatedCities)
     }
 }

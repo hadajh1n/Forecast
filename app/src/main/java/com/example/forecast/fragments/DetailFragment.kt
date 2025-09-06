@@ -18,7 +18,9 @@ import com.example.forecast.viewModel.DetailUIState
 class DetailFragment : Fragment() {
 
     private var _binding : FragmentDetailBinding? = null
+
     private val binding get() = _binding!!
+
     private val viewModel: DetailViewModel by viewModels()
     private val detailAdapter = DetailAdapter()
     private val args: DetailFragmentArgs by navArgs()

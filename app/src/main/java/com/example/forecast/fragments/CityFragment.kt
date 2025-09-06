@@ -32,7 +32,9 @@ class CityFragment : Fragment() {
     }
 
     private var _binding: FragmentCityBinding? = null
+
     private val binding get() = _binding!!
+
     private val viewModel: MainViewModel by viewModels()
 
     private val cityAdapter = CityAdapter { currentWeather ->

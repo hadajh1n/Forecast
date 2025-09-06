@@ -41,6 +41,8 @@ class DetailViewModel : ViewModel() {
 
     val detailState: LiveData<DetailUIState> get() = _detailState
 
+    private var cachedDetails = mutableMapOf<String, DetailUIState.Success>()
+
     private fun getApiKey(context: Context) : String {
         val apiKey = context.getString(R.string.weather_api_key)
         if (apiKey.isEmpty()) {
@@ -52,6 +54,11 @@ class DetailViewModel : ViewModel() {
 
     fun loadCityDetail(cityName: String, context: Context) {
         viewModelScope.launch {
+            cachedDetails[cityName]?.let {
+                _detailState.value = it
+                return@launch
+            }
+
             _detailState.value = DetailUIState.Loading
             try {
                 val apiKey = getApiKey(context)
@@ -77,7 +84,7 @@ class DetailViewModel : ViewModel() {
                         )
                     }
 
-                _detailState.value = DetailUIState.Success(
+                val successState = DetailUIState.Success(
                     temperature = context.getString(
                         R.string.temperature_format,
                         weather.main.temp.toInt()
@@ -85,6 +92,8 @@ class DetailViewModel : ViewModel() {
                     iconUrl = WEATHER_ICON_URL.format(weather.weather[0].icon),
                     forecast = uiForecast
                 )
+                cachedDetails[cityName] = successState
+                _detailState.value = successState
             } catch (e: Exception) {
                 _detailState.value = DetailUIState.Error(
                     context.getString(R.string.error_fetch_current_weather),
