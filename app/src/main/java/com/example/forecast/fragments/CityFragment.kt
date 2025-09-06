@@ -52,7 +52,7 @@ class CityFragment : Fragment() {
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View {
+    ): View? {
         _binding = FragmentCityBinding.inflate(inflater, container, false)
         return binding.root
     }
