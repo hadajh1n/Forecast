@@ -45,6 +45,10 @@ class DetailFragment : Fragment() {
         setupRetryButton()
 
         viewModel.loadCityDetail(cityName, requireContext())
+
+        if (savedInstanceState == null) {
+            viewModel.startRefresh(cityName, requireActivity().applicationContext)
+        }
     }
 
     override fun onDestroyView() {

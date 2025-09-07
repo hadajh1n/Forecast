@@ -1,7 +1,7 @@
 package com.example.forecast
 
 object Constants {
-    object IntentKeys {
-        const val CITY_NAME = "CITY_NAME"
+    object Weather {
+        const val REFRESH_INTERVAL_MILLIS = 300_000L
     }
 }

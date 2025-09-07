@@ -71,6 +71,10 @@ class CityFragment : Fragment() {
         restoreDialogState(savedInstanceState)
 
         viewModel.loadCitiesFromPrefs(requireContext())
+
+        if (savedInstanceState == null) {
+            viewModel.startRefresh(requireActivity().applicationContext)
+        }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {

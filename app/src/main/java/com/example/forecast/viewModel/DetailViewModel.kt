@@ -5,6 +5,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.forecast.Constants
 import com.example.forecast.R
 import com.example.forecast.dataclass.ForecastItem
 import com.example.forecast.dataclass.ForecastMain
@@ -12,6 +13,7 @@ import com.example.forecast.dataclass.ForecastUI
 import com.example.forecast.dataclass.ForecastWeather
 import com.example.forecast.dataclass.Weather
 import com.example.forecast.retrofit.RetrofitClient
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -42,6 +44,7 @@ class DetailViewModel : ViewModel() {
     val detailState: LiveData<DetailUIState> get() = _detailState
 
     private var cachedDetails = mutableMapOf<String, DetailUIState.Success>()
+    private var isRefreshing = false
 
     private fun getApiKey(context: Context) : String {
         val apiKey = context.getString(R.string.weather_api_key)
@@ -131,5 +134,73 @@ class DetailViewModel : ViewModel() {
         }
 
         return dailyForecasts
+    }
+
+    fun startRefresh(
+        cityName: String,
+        context: Context,
+        interval: Long = Constants.Weather.REFRESH_INTERVAL_MILLIS
+    ) {
+        if (isRefreshing) return
+        isRefreshing = true
+
+        viewModelScope.launch {
+            while (isRefreshing) {
+                refreshDetails(cityName, context)
+                delay(interval)
+            }
+        }
+    }
+
+    private suspend fun refreshDetails(cityName: String, context: Context) {
+        _detailState.value = DetailUIState.Loading
+        try {
+            val apiKey = getApiKey(context)
+            val weather = RetrofitClient.weatherApi.getCurrentWeather(cityName, apiKey)
+            val forecastResponse = RetrofitClient.weatherApi.getForecast(cityName, apiKey)
+            val dailyForecasts = groupForecastByDay(forecastResponse)
+            val uiForecast = dailyForecasts
+                .take(6)
+                .map {
+                    ForecastUI(
+                        dayOfWeek = SimpleDateFormat("E", Locale("ru"))
+                            .format(Date(it.dt * SECONDS_TO_MILLIS))
+                            .uppercase(),
+                        iconUrl = WEATHER_ICON_URL.format(it.weather[0].icon),
+                        tempMax = context.getString(
+                            R.string.temperature_format,
+                            it.main.tempMax.toInt()
+                        ),
+                        tempMin = context.getString(
+                            R.string.temperature_format,
+                            it.main.tempMin.toInt()
+                        )
+                    )
+                }
+
+            val successState = DetailUIState.Success(
+                temperature = context.getString(
+                    R.string.temperature_format,
+                    weather.main.temp.toInt()
+                ),
+                iconUrl = WEATHER_ICON_URL.format(weather.weather[0].icon),
+                forecast = uiForecast
+            )
+            cachedDetails[cityName] = successState
+            _detailState.value = successState
+        } catch (e: Exception) {
+            _detailState.value = DetailUIState.Error(
+                context.getString(R.string.error_fetch_current_weather),
+            )
+        }
+    }
+
+    fun stopRefresh() {
+        isRefreshing = false
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        stopRefresh()
     }
 }

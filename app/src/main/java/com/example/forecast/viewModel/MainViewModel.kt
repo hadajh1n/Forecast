@@ -5,9 +5,11 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.forecast.Constants
 import com.example.forecast.R
 import com.example.forecast.dataclass.CurrentWeather
 import com.example.forecast.retrofit.RetrofitClient
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 sealed class MainUIState {
@@ -32,6 +34,7 @@ class MainViewModel : ViewModel() {
     val errorMessage : LiveData<String> get() = _errorMessage
 
     private var cachedCities: List<CurrentWeather>? = null
+    private var isRefreshing = false
 
     private fun getApiKey(context: Context) : String {
         val apiKey = context.getString(R.string.weather_api_key)
@@ -124,5 +127,44 @@ class MainViewModel : ViewModel() {
         }
         cachedCities = updatedCities
         _uiState.value = MainUIState.Success(updatedCities)
+    }
+
+    fun startRefresh(context: Context, interval: Long = Constants.Weather.REFRESH_INTERVAL_MILLIS) {
+        if (isRefreshing) return
+        isRefreshing = true
+
+        viewModelScope.launch {
+            while (isRefreshing) {
+                refreshWeather(context)
+                delay(interval)
+            }
+        }
+    }
+
+    private suspend fun refreshWeather(context: Context) {
+        _uiState.value = MainUIState.Loading
+        try {
+            val apiKey = getApiKey(context)
+            val cityNames = getCitiesFromPrefs(context)
+            if (cityNames.isEmpty()) {
+                _uiState.value = MainUIState.Success(emptyList())
+                return
+            }
+
+            val cities = loadWeatherForCities(cityNames, apiKey)
+            cachedCities = cities
+            _uiState.value = MainUIState.Success(cities)
+        } catch (e: Exception) {
+            _uiState.value = MainUIState.Error(context.getString(R.string.error_load_cities))
+        }
+    }
+
+    fun stopRefresh() {
+        isRefreshing = false
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        stopRefresh()
     }
 }
