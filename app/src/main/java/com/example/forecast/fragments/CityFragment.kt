@@ -71,16 +71,16 @@ class CityFragment : Fragment() {
         restoreDialogState(savedInstanceState)
 
         viewModel.loadCitiesFromPrefs(requireContext())
-
-        if (savedInstanceState == null) {
-            viewModel.startRefresh(requireActivity().applicationContext)
-        }
     }
 
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        outState.putBoolean(SHOW_DIALOG, dialog?.isShowing == true)
-        outState.putString(DIALOG_INPUT_NAME, dialogInput?.text?.toString() ?: dialogInputText)
+    override fun onStart() {
+        super.onStart()
+        viewModel.startRefresh(requireActivity().applicationContext)
+    }
+
+    override fun onStop() {
+        super.onStop()
+        viewModel.stopRefresh()
     }
 
     override fun onDestroyView() {
@@ -90,6 +90,12 @@ class CityFragment : Fragment() {
         dialogInput?.removeTextChangedListener(textWatcher)
         dialogInput = null
         _binding = null
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean(SHOW_DIALOG, dialog?.isShowing == true)
+        outState.putString(DIALOG_INPUT_NAME, dialogInput?.text?.toString() ?: dialogInputText)
     }
 
     private fun setupRecyclerView() = with(binding) {
