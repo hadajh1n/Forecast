@@ -11,6 +11,7 @@ import com.example.forecast.dataclass.CurrentWeather
 import com.example.forecast.retrofit.RetrofitClient
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.json.JSONArray
 
 sealed class MainUIState {
     object Loading : MainUIState()
@@ -84,12 +85,19 @@ class MainViewModel : ViewModel() {
 
     private fun saveCities(context: Context, cityNames: List<String>) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        prefs.edit().putStringSet(PREFS_KEY_CITIES, cityNames.toSet()).apply()
+        val json = JSONArray(cityNames).toString()
+        prefs.edit().putString(PREFS_KEY_CITIES, json).apply()
     }
 
     private fun getCitiesFromPrefs(context: Context): List<String> {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        return prefs.getStringSet(PREFS_KEY_CITIES, emptySet())?.toList() ?: emptyList()
+        val json = prefs.getString(PREFS_KEY_CITIES, null) ?: return emptyList()
+        val jsonArray = JSONArray(json)
+        val list = mutableListOf<String>()
+        for (i in 0 until jsonArray.length()) {
+            list.add(jsonArray.getString(i))
+        }
+        return list
     }
 
     fun loadCitiesFromPrefs(context: Context) {
@@ -142,7 +150,6 @@ class MainViewModel : ViewModel() {
     }
 
     private suspend fun refreshWeather(context: Context) {
-        _uiState.value = MainUIState.Loading
         try {
             val apiKey = getApiKey(context)
             val cityNames = getCitiesFromPrefs(context)

@@ -63,7 +63,6 @@ dependencies {
     implementation(libs.glide)
 
     // Navigation
-    implementation(libs.navigation.compose)
     implementation(libs.navigation.fragment)
     implementation(libs.navigation.ui)
     implementation(libs.navigation.dynamic.features)

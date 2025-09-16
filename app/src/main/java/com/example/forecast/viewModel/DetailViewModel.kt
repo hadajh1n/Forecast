@@ -153,7 +153,6 @@ class DetailViewModel : ViewModel() {
     }
 
     private suspend fun refreshDetails(cityName: String, context: Context) {
-        _detailState.value = DetailUIState.Loading
         try {
             val apiKey = getApiKey(context)
             val weather = RetrofitClient.weatherApi.getCurrentWeather(cityName, apiKey)
