@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     android:background="@color/activity_main">
 
-    <ScrollView
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:fillViewport="true">
@@ -48,7 +48,8 @@
                     android:id="@+id/rvCity"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:padding="8dp" />
+                    android:padding="8dp"
+                    android:nestedScrollingEnabled="false" />
             </com.google.android.material.card.MaterialCardView>
 
             <ImageButton
@@ -61,7 +62,7 @@
                 android:scaleType="centerCrop"
                 android:src="@drawable/btn_add" />
         </LinearLayout>
-    </ScrollView>
+    </androidx.core.widget.NestedScrollView>
 
     <ProgressBar
         android:id="@+id/progressBar"
