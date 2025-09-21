@@ -9,7 +9,9 @@ import com.example.forecast.Constants
 import com.example.forecast.R
 import com.example.forecast.dataclass.CurrentWeather
 import com.example.forecast.retrofit.RetrofitClient
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 
@@ -35,7 +37,7 @@ class MainViewModel : ViewModel() {
     val errorMessage : LiveData<String> get() = _errorMessage
 
     private var cachedCities: List<CurrentWeather>? = null
-    private var isRefreshing = false
+    private var refreshJob: Job? = null
 
     private fun getApiKey(context: Context) : String {
         val apiKey = context.getString(R.string.weather_api_key)
@@ -138,11 +140,10 @@ class MainViewModel : ViewModel() {
     }
 
     fun startRefresh(context: Context, interval: Long = Constants.Weather.REFRESH_INTERVAL_MILLIS) {
-        if (isRefreshing) return
-        isRefreshing = true
+        if (refreshJob?.isActive == true) return
 
-        viewModelScope.launch {
-            while (isRefreshing) {
+        refreshJob = viewModelScope.launch {
+            while (isActive) {
                 refreshWeather(context)
                 delay(interval)
             }
@@ -167,7 +168,8 @@ class MainViewModel : ViewModel() {
     }
 
     fun stopRefresh() {
-        isRefreshing = false
+        refreshJob?.cancel()
+        refreshJob = null
     }
 
     override fun onCleared() {

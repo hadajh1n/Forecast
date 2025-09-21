@@ -13,7 +13,9 @@ import com.example.forecast.dataclass.ForecastUI
 import com.example.forecast.dataclass.ForecastWeather
 import com.example.forecast.dataclass.Weather
 import com.example.forecast.retrofit.RetrofitClient
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -44,7 +46,7 @@ class DetailViewModel : ViewModel() {
     val detailState: LiveData<DetailUIState> get() = _detailState
 
     private var cachedDetails = mutableMapOf<String, DetailUIState.Success>()
-    private var isRefreshing = false
+    private var refreshJob: Job? = null
 
     private fun getApiKey(context: Context) : String {
         val apiKey = context.getString(R.string.weather_api_key)
@@ -141,11 +143,10 @@ class DetailViewModel : ViewModel() {
         context: Context,
         interval: Long = Constants.Weather.REFRESH_INTERVAL_MILLIS
     ) {
-        if (isRefreshing) return
-        isRefreshing = true
+        if (refreshJob?.isActive == true) return
 
-        viewModelScope.launch {
-            while (isRefreshing) {
+        refreshJob = viewModelScope.launch {
+            while (isActive) {
                 refreshDetails(cityName, context)
                 delay(interval)
             }
@@ -195,7 +196,8 @@ class DetailViewModel : ViewModel() {
     }
 
     fun stopRefresh() {
-        isRefreshing = false
+        refreshJob?.cancel()
+        refreshJob = null
     }
 
     override fun onCleared() {
