@@ -80,7 +80,9 @@ class CityFragment : Fragment() {
 
     override fun onStop() {
         super.onStop()
-        viewModel.stopRefresh()
+        if (!requireActivity().isChangingConfigurations) {
+            viewModel.stopRefresh()
+        }
     }
 
     override fun onDestroyView() {
