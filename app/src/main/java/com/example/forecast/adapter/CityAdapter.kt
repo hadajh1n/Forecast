@@ -4,6 +4,7 @@ import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.example.forecast.R
 import com.example.forecast.databinding.ItemCityBinding
@@ -17,9 +18,12 @@ class CityAdapter(
     val cityList = mutableListOf<CurrentWeather>()
 
     fun updateCities(newCities: List<CurrentWeather>) {
+        val diffCallback = CityDiffCallback(cityList, newCities)
+        val diffResult = DiffUtil.calculateDiff(diffCallback)
+
         cityList.clear()
         cityList.addAll(newCities)
-        notifyDataSetChanged()
+        diffResult.dispatchUpdatesTo(this@CityAdapter)
     }
 
     fun removeCity(position: Int): CurrentWeather {
@@ -56,4 +60,22 @@ class CityAdapter(
     }
 
     override fun getItemCount(): Int = cityList.size
+}
+
+class CityDiffCallback(
+    private val oldList: List<CurrentWeather>,
+    private val newList: List<CurrentWeather>
+) : DiffUtil.Callback() {
+
+    override fun getOldListSize(): Int = oldList.size
+
+    override fun getNewListSize(): Int = newList.size
+
+    override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
+        return oldList[oldItemPosition].name == newList[newItemPosition].name
+    }
+
+    override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
+        return oldList[oldItemPosition] == newList[newItemPosition]
+    }
 }
