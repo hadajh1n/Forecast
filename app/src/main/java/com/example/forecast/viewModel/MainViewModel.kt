@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.forecast.Constants
 import com.example.forecast.R
+import com.example.forecast.WeatherRepository
 import com.example.forecast.dataclass.CurrentWeather
 import com.example.forecast.retrofit.RetrofitClient
 import kotlinx.coroutines.Job
@@ -21,11 +22,6 @@ sealed class MainUIState {
     data class Error(val message: String) : MainUIState()
 }
 
-data class CachedCityData(
-    val cities: List<CurrentWeather>,
-    val timestamp: Long
-)
-
 class MainViewModel : ViewModel() {
 
     companion object {
@@ -34,14 +30,11 @@ class MainViewModel : ViewModel() {
     }
 
     private val _uiState = MutableLiveData<MainUIState>()
-
     val uiState: LiveData<MainUIState> get() = _uiState
 
     private val _errorMessage = MutableLiveData<String>()
-
     val errorMessage : LiveData<String> get() = _errorMessage
 
-    private var cachedCityData: CachedCityData? = null
     private var refreshJob: Job? = null
 
     private fun getApiKey(context: Context) : String {
@@ -66,15 +59,18 @@ class MainViewModel : ViewModel() {
                 currentCities.add(cityName)
                 saveCities(context, currentCities)
                 val weather = RetrofitClient.weatherApi.getCurrentWeather(cityName, apiKey)
-                val updatedCities = (cachedCityData?.cities ?: emptyList()).toMutableList()
+                val updatedCities =
+                    (WeatherRepository.getCachedCities()?.cities ?: emptyList()).toMutableList()
                 updatedCities.add(weather)
-                cachedCityData = CachedCityData(updatedCities, System.currentTimeMillis())
+                WeatherRepository.setCachedCities(updatedCities, System.currentTimeMillis())
                 _uiState.value = MainUIState.Success(updatedCities)
             } catch (e: Exception) {
-                if (cachedCityData != null) {
-                    _uiState.value = MainUIState.Success(cachedCityData!!.cities)
+                val cached = WeatherRepository.getCachedCities()
+                if (cached != null) {
+                    _uiState.value = MainUIState.Success(cached.cities)
                 } else {
-                    _uiState.value = MainUIState.Error(context.getString(R.string.error_load_cities))
+                    _uiState.value =
+                        MainUIState.Error(context.getString(R.string.error_load_cities))
                 }
             }
         }
@@ -124,11 +120,12 @@ class MainViewModel : ViewModel() {
             } else {
                 emptyList()
             }
-            cachedCityData = CachedCityData(cities, System.currentTimeMillis())
+            WeatherRepository.setCachedCities(cities, System.currentTimeMillis())
             _uiState.value = MainUIState.Success(cities)
         } catch (e: Exception) {
-            if (cachedCityData != null) {
-                _uiState.value = MainUIState.Success(cachedCityData!!.cities)
+            val cached = WeatherRepository.getCachedCities()
+            if (cached != null) {
+                _uiState.value = MainUIState.Success(cached.cities)
             } else {
                 _uiState.value = MainUIState.Error(context.getString(R.string.error_load_cities))
             }
@@ -137,7 +134,7 @@ class MainViewModel : ViewModel() {
 
     fun loadCitiesFromPrefs(context: Context) {
         viewModelScope.launch {
-            val cached = cachedCityData
+            val cached = WeatherRepository.getCachedCities()
             if (cached != null && isCachedValid(cached.timestamp)) {
                 _uiState.value = MainUIState.Success(cached.cities)
                 return@launch
@@ -155,12 +152,9 @@ class MainViewModel : ViewModel() {
         val currentCities = getCitiesFromPrefs(context).toMutableList()
         currentCities.removeAll { it.equals(cityName, ignoreCase = true) }
         saveCities(context, currentCities)
-
-        val updatedCities = (cachedCityData?.cities ?: emptyList()).filter {
-            !it.name.equals(cityName, ignoreCase = true)
-        }
-        cachedCityData = CachedCityData(updatedCities, System.currentTimeMillis())
-        _uiState.value = MainUIState.Success(updatedCities)
+        WeatherRepository.removeCity(cityName)
+        val cached = WeatherRepository.getCachedCities()
+        _uiState.value = MainUIState.Success(cached?.cities ?: emptyList())
     }
 
     fun startRefresh(context: Context) {
@@ -168,7 +162,7 @@ class MainViewModel : ViewModel() {
 
         refreshJob = viewModelScope.launch {
             while (isActive) {
-                val cachedData = cachedCityData
+                val cachedData = WeatherRepository.getCachedCities()
                 val age = cachedData?.let {
                     System.currentTimeMillis() - it.timestamp
                 } ?: Long.MAX_VALUE
