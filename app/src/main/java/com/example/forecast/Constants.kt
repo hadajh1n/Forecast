@@ -1,7 +1,7 @@
 package com.example.forecast
 
 object Constants {
-    object Weather {
-        const val REFRESH_INTERVAL_MILLIS = 300_000L
+    object CacheLifetime {
+        const val CACHE_VALIDITY_DURATION = 5 * 60 * 1000L
     }
 }

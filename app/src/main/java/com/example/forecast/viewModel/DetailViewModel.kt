@@ -5,6 +5,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.forecast.Constants
 import com.example.forecast.R
 import com.example.forecast.dataclass.CurrentWeather
 import com.example.forecast.dataclass.ForecastItem
@@ -45,7 +46,6 @@ class DetailViewModel : ViewModel() {
     companion object {
         private const val SECONDS_TO_MILLIS = 1000L
         private const val WEATHER_ICON_URL = "https://openweathermap.org/img/wn/%s.png"
-        private const val CACHE_VALIDITY_DURATION = 5 * 60 * 1000L
     }
 
     private val _detailState = MutableLiveData<DetailUIState>()
@@ -77,7 +77,8 @@ class DetailViewModel : ViewModel() {
     }
 
     private fun isCachedValid(timestamp: Long): Boolean {
-        return (System.currentTimeMillis() - timestamp) < CACHE_VALIDITY_DURATION
+        return (System.currentTimeMillis() - timestamp) <
+                Constants.CacheLifetime.CACHE_VALIDITY_DURATION
     }
 
     private suspend fun fetchWeatherData(
@@ -182,12 +183,12 @@ class DetailViewModel : ViewModel() {
                     System.currentTimeMillis() - it.timestamp
                 } ?: Long.MAX_VALUE
 
-                val nextUpdateDelay = if (age < CACHE_VALIDITY_DURATION) {
+                val nextUpdateDelay = if (age < Constants.CacheLifetime.CACHE_VALIDITY_DURATION) {
                     _detailState.value = mapToUI(cachedData!!, context)
-                    CACHE_VALIDITY_DURATION - age
+                    Constants.CacheLifetime.CACHE_VALIDITY_DURATION - age
                 } else {
                     fetchWeatherData(cityName, context)
-                    CACHE_VALIDITY_DURATION
+                    Constants.CacheLifetime.CACHE_VALIDITY_DURATION
                 }
 
                 delay(nextUpdateDelay)
