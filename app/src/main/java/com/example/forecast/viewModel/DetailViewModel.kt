@@ -1,6 +1,7 @@
 package com.example.forecast.viewModel
 
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -8,7 +9,6 @@ import androidx.lifecycle.viewModelScope
 import com.example.forecast.Constants
 import com.example.forecast.R
 import com.example.forecast.WeatherRepository
-import com.example.forecast.dataclass.CurrentWeather
 import com.example.forecast.dataclass.ForecastItem
 import com.example.forecast.dataclass.ForecastMain
 import com.example.forecast.dataclass.ForecastUI
@@ -41,6 +41,7 @@ class DetailViewModel : ViewModel() {
     companion object {
         private const val SECONDS_TO_MILLIS = 1000L
         private const val WEATHER_ICON_URL = "https://openweathermap.org/img/wn/%s.png"
+        private const val TAG = "DetailViewModel"
     }
 
     private val _detailState = MutableLiveData<DetailUIState>()
@@ -57,15 +58,21 @@ class DetailViewModel : ViewModel() {
         return apiKey
     }
 
-    fun loadCityDetail(cityName: String, context: Context) {
+    fun loadCityDetail(cityName: String, context: Context, showLoading: Boolean = false) {
         viewModelScope.launch {
-            val cachedData = WeatherRepository.getCachedDetails(cityName)
-            if (cachedData != null && isCachedValid(cachedData.timestamp)) {
-                _detailState.value = mapToUI(cachedData, context)
-                return@launch
+            if (showLoading) {
+                _detailState.value = DetailUIState.Loading
             }
 
-            fetchWeatherData(cityName, context, showLoading = cachedData == null)
+            val cachedData = WeatherRepository.getCachedDetails(cityName)
+            val isCacheValid = cachedData != null && cachedData.forecast != null
+                    && isCachedValid(cachedData.timestamp)
+
+            if (isCacheValid) {
+                _detailState.value = mapToUI(cachedData!!, context)
+            } else {
+                fetchWeatherData(cityName, context)
+            }
         }
     }
 
@@ -76,12 +83,10 @@ class DetailViewModel : ViewModel() {
 
     private suspend fun fetchWeatherData(
         cityName: String,
-        context: Context,
-        showLoading: Boolean = false
+        context: Context
     ) {
-        if (showLoading) {
-            _detailState.value = DetailUIState.Loading
-        }
+        _detailState.value = DetailUIState.Loading
+
         try {
             val apiKey = getApiKey(context)
             val weather = RetrofitClient.weatherApi.getCurrentWeather(cityName, apiKey)
@@ -92,10 +97,19 @@ class DetailViewModel : ViewModel() {
                 forecastResponse,
                 System.currentTimeMillis()
             )
-            _detailState.value = mapToUI(WeatherRepository.getCachedDetails(cityName)!!, context)
-        } catch (e: Exception) {
+
             val cached = WeatherRepository.getCachedDetails(cityName)
-            if (cached != null) {
+            if (cached != null && cached.forecast != null) {
+                _detailState.value = mapToUI(cached, context)
+            } else {
+                _detailState.value = DetailUIState.Error(
+                    context.getString(R.string.error_fetch_current_weather)
+                )
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to fetch weather data for city: $cityName", e)
+            val cached = WeatherRepository.getCachedDetails(cityName)
+            if (cached != null && cached.forecast != null) {
                 _detailState.value = mapToUI(cached, context)
             } else {
                 _detailState.value = DetailUIState.Error(
@@ -104,8 +118,11 @@ class DetailViewModel : ViewModel() {
         }
     }
 
-    private fun mapToUI(cached: WeatherRepository.CachedWeatherData, context: Context): DetailUIState.Success {
-        val dailyForecasts = groupForecastByDay(cached.forecast)
+    private fun mapToUI(
+        cached: WeatherRepository.CachedWeatherData,
+        context: Context
+    ): DetailUIState.Success {
+        val dailyForecasts = groupForecastByDay(cached.forecast!!)
         val uiForecast = dailyForecasts
             .take(6)
             .map {
@@ -177,14 +194,16 @@ class DetailViewModel : ViewModel() {
                 } ?: Long.MAX_VALUE
 
                 val nextUpdateDelay = if (age < Constants.CacheLifetime.CACHE_VALIDITY_DURATION) {
-                    _detailState.value = mapToUI(cachedData!!, context)
+                    if (cachedData != null && cachedData.forecast != null) {
+                        _detailState.value = mapToUI(cachedData, context)
+                    }
                     Constants.CacheLifetime.CACHE_VALIDITY_DURATION - age
                 } else {
                     fetchWeatherData(cityName, context)
                     Constants.CacheLifetime.CACHE_VALIDITY_DURATION
                 }
 
-                delay(nextUpdateDelay)
+                delay(nextUpdateDelay.coerceAtLeast(1000))
             }
         }
     }
