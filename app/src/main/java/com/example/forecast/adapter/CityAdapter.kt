@@ -40,7 +40,7 @@ class CityAdapter(
             tvCity.text = currentWeather.name
             tvTemperature.text = context.getString(
                 R.string.temperature_format,
-                currentWeather.main.temp.roundToInt(),
+                kotlin.math.round(currentWeather.main.temp).toInt(),
             )
 
             root.setOnClickListener {

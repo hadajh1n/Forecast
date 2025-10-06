@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.forecast.Constants
@@ -48,6 +49,22 @@ class DetailViewModel : ViewModel() {
     val detailState: LiveData<DetailUIState> get() = _detailState
 
     private var refreshJob: Job? = null
+    private var cityName: String? = null
+    private var context: Context? = null
+
+    private val observer =
+        Observer<Map<String, WeatherRepository.CachedWeatherData>> { cachedDetails ->
+            if (cityName == null || context == null) return@Observer
+
+            val cachedData = cachedDetails[cityName]
+            if (cachedData != null && cachedData.current != null && cachedData.forecast != null) {
+                _detailState.value = mapToUI(cachedData, context!!)
+            }
+    }
+
+    init {
+        WeatherRepository.cachedWeatherLiveData.observeForever(observer)
+    }
 
     private fun getApiKey(context: Context) : String {
         val apiKey = context.getString(R.string.weather_api_key)
@@ -58,64 +75,54 @@ class DetailViewModel : ViewModel() {
         return apiKey
     }
 
-    fun loadCityDetail(cityName: String, context: Context, showLoading: Boolean = false) {
+    fun loadCityDetail(cityName: String, context: Context, showLoading: Boolean = true) {
+        this.cityName = cityName
+        this.context = context
+        if (showLoading) _detailState.value = DetailUIState.Loading
+
+        val cachedData = WeatherRepository.getCachedDetails(cityName)
+        val isCurrentValid = cachedData?.current != null
+                && isCachedValidCurrent(cachedData.timestampCurrent)
+        val isForecastValid = cachedData?.forecast != null
+                && isCachedValidForecast(cachedData.timestampForecast)
+
+        if (isCurrentValid && isForecastValid) {
+            _detailState.value = mapToUI(cachedData!!, context)
+            return
+        }
+
         viewModelScope.launch {
-            if (showLoading) {
-                _detailState.value = DetailUIState.Loading
-            }
-
-            val cachedData = WeatherRepository.getCachedDetails(cityName)
-            val isCacheValid = cachedData != null && cachedData.forecast != null
-                    && isCachedValid(cachedData.timestamp)
-
-            if (isCacheValid) {
-                _detailState.value = mapToUI(cachedData!!, context)
-            } else {
-                fetchWeatherData(cityName, context)
+            try {
+                val apiKey = getApiKey(context)
+                if (!isCurrentValid) {
+                    val current = RetrofitClient.weatherApi.getCurrentWeather(cityName, apiKey)
+                    WeatherRepository.setCachedCurrent(cityName,
+                        current,
+                        System.currentTimeMillis()
+                    )
+                }
+                if (!isForecastValid) {
+                    val forecast = RetrofitClient.weatherApi.getForecast(cityName, apiKey)
+                    WeatherRepository.setCachedForecast(cityName,
+                        forecast,
+                        System.currentTimeMillis()
+                    )
+                }
+            } catch (e: Exception) {
+                _detailState.value =
+                    DetailUIState.Error(context.getString(R.string.error_fetch_current_weather))
             }
         }
     }
 
-    private fun isCachedValid(timestamp: Long): Boolean {
+    private fun isCachedValidCurrent(timestamp: Long): Boolean {
         return (System.currentTimeMillis() - timestamp) <
                 Constants.CacheLifetime.CACHE_VALIDITY_DURATION
     }
 
-    private suspend fun fetchWeatherData(
-        cityName: String,
-        context: Context
-    ) {
-        _detailState.value = DetailUIState.Loading
-
-        try {
-            val apiKey = getApiKey(context)
-            val weather = RetrofitClient.weatherApi.getCurrentWeather(cityName, apiKey)
-            val forecastResponse = RetrofitClient.weatherApi.getForecast(cityName, apiKey)
-            WeatherRepository.setCachedDetails(
-                cityName,
-                weather,
-                forecastResponse,
-                System.currentTimeMillis()
-            )
-
-            val cached = WeatherRepository.getCachedDetails(cityName)
-            if (cached != null && cached.forecast != null) {
-                _detailState.value = mapToUI(cached, context)
-            } else {
-                _detailState.value = DetailUIState.Error(
-                    context.getString(R.string.error_fetch_current_weather)
-                )
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to fetch weather data for city: $cityName", e)
-            val cached = WeatherRepository.getCachedDetails(cityName)
-            if (cached != null && cached.forecast != null) {
-                _detailState.value = mapToUI(cached, context)
-            } else {
-                _detailState.value = DetailUIState.Error(
-                    context.getString(R.string.error_fetch_current_weather))
-            }
-        }
+    private fun isCachedValidForecast(timestamp: Long): Boolean {
+        return (System.currentTimeMillis() - timestamp) <
+                Constants.CacheLifetime.CACHE_VALIDITY_DURATION
     }
 
     private fun mapToUI(
@@ -133,11 +140,11 @@ class DetailViewModel : ViewModel() {
                     iconUrl = WEATHER_ICON_URL.format(it.weather[0].icon),
                     tempMax = context.getString(
                         R.string.temperature_format,
-                        it.main.tempMax.toInt()
+                        kotlin.math.round(it.main.tempMax).toInt()
                     ),
                     tempMin = context.getString(
                         R.string.temperature_format,
-                        it.main.tempMin.toInt()
+                        kotlin.math.round(it.main.tempMin).toInt()
                     )
                 )
             }
@@ -145,9 +152,9 @@ class DetailViewModel : ViewModel() {
         return DetailUIState.Success(
             temperature = context.getString(
                 R.string.temperature_format,
-                cached.weather.main.temp.toInt()
+                kotlin.math.round(cached.current!!.main.temp).toInt()
             ),
-            iconUrl = WEATHER_ICON_URL.format(cached.weather.weather[0].icon),
+            iconUrl = WEATHER_ICON_URL.format(cached.current!!.weather[0].icon),
             forecast = uiForecast
         )
     }
@@ -185,25 +192,57 @@ class DetailViewModel : ViewModel() {
 
     fun startRefresh(cityName: String, context: Context) {
         if (refreshJob?.isActive == true) return
+        this.context = context
 
         refreshJob = viewModelScope.launch {
             while (isActive) {
                 val cachedData = WeatherRepository.getCachedDetails(cityName)
-                val age = cachedData?.let {
-                    System.currentTimeMillis() - it.timestamp
+                val ageCurrent = cachedData?.timestampCurrent?.let {
+                    System.currentTimeMillis() - it
+                } ?: Long.MAX_VALUE
+                val ageForecast = cachedData?.timestampForecast?.let {
+                    System.currentTimeMillis() - it
                 } ?: Long.MAX_VALUE
 
-                val nextUpdateDelay = if (age < Constants.CacheLifetime.CACHE_VALIDITY_DURATION) {
-                    if (cachedData != null && cachedData.forecast != null) {
-                        _detailState.value = mapToUI(cachedData, context)
-                    }
-                    Constants.CacheLifetime.CACHE_VALIDITY_DURATION - age
-                } else {
-                    fetchWeatherData(cityName, context)
-                    Constants.CacheLifetime.CACHE_VALIDITY_DURATION
+                val needCurrent = ageCurrent >= Constants.CacheLifetime.CACHE_VALIDITY_DURATION
+                        || cachedData?.current == null
+                val needForecast = ageForecast >= Constants.CacheLifetime.CACHE_VALIDITY_DURATION
+                        || cachedData?.forecast == null
+
+                if (!needCurrent && !needForecast) {
+                    if (cachedData != null) _detailState.value = mapToUI(cachedData, context)
+                    delay(Constants.CacheLifetime.CACHE_VALIDITY_DURATION.coerceAtLeast(1000L))
+                    continue
                 }
 
-                delay(nextUpdateDelay.coerceAtLeast(1000))
+                try {
+                    val apiKey = getApiKey(context)
+                    if (needCurrent) {
+                        val current = RetrofitClient.weatherApi.getCurrentWeather(cityName, apiKey)
+                        WeatherRepository.setCachedCurrent(
+                            cityName,
+                            current,
+                            System.currentTimeMillis())
+                    }
+                    if (needForecast) {
+                        val forecast = RetrofitClient.weatherApi.getForecast(cityName, apiKey)
+                        WeatherRepository.setCachedForecast(
+                            cityName,
+                            forecast,
+                            System.currentTimeMillis())
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to refresh", e)
+                }
+
+                val remainingCurrent = Constants.CacheLifetime.CACHE_VALIDITY_DURATION -
+                        (System.currentTimeMillis() -
+                                (WeatherRepository.getTimestampCurrent(cityName) ?: 0L))
+                val remainingForecast = Constants.CacheLifetime.CACHE_VALIDITY_DURATION -
+                        (System.currentTimeMillis() -
+                                (WeatherRepository.getTimestampForecast(cityName) ?: 0L))
+                val minDelay = minOf(remainingCurrent, remainingForecast).coerceAtLeast(1000L)
+                delay(minDelay)
             }
         }
     }
@@ -215,6 +254,7 @@ class DetailViewModel : ViewModel() {
 
     override fun onCleared() {
         super.onCleared()
+        WeatherRepository.cachedWeatherLiveData.removeObserver(observer)
         stopRefresh()
     }
 }
