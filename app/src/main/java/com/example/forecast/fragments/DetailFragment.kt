@@ -8,12 +8,14 @@ import android.view.ViewGroup
 import com.example.forecast.adapter.DetailAdapter
 import com.example.forecast.viewModel.DetailViewModel
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.navArgs
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.example.forecast.R
 import com.example.forecast.databinding.FragmentDetailBinding
 import com.example.forecast.viewModel.DetailUIState
+import kotlinx.coroutines.launch
 
 class DetailFragment : Fragment() {
 
@@ -44,7 +46,9 @@ class DetailFragment : Fragment() {
         observeViewModel()
         setupRetryButton()
 
-        viewModel.loadCityDetail(cityName, requireContext())
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.loadCityDetail(cityName, requireContext())
+        }
     }
 
     override fun onStart() {
@@ -118,7 +122,9 @@ class DetailFragment : Fragment() {
 
     private fun setupRetryButton() {
         binding.btnRetry.setOnClickListener {
-            viewModel.loadCityDetail(cityName, requireContext())
+            viewLifecycleOwner.lifecycleScope.launch {
+                viewModel.loadCityDetail(cityName, requireContext())
+            }
         }
     }
 }

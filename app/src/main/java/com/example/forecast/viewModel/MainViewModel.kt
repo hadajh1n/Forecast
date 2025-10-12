@@ -16,7 +16,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import org.json.JSONArray
 
 sealed class MainUIState {
     object Loading : MainUIState()
@@ -27,8 +26,6 @@ sealed class MainUIState {
 class MainViewModel : ViewModel() {
 
     companion object {
-        private const val PREFS_NAME = "WeatherAppPrefs"
-        private const val PREFS_KEY_CITIES = "cities"
         private const val TAG = "MainViewModel"
     }
 
@@ -43,6 +40,7 @@ class MainViewModel : ViewModel() {
     private val observer =
         Observer<Map<String, WeatherRepository.CachedWeatherData>> { cachedDetails ->
             val cities = cachedDetails.values.mapNotNull { it.current }
+                .sortedBy { cachedDetails[it.name]?.orderIndex }
             _uiState.value = MainUIState.Success(cities)
     }
 
@@ -59,14 +57,11 @@ class MainViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 val apiKey = getApiKey(context)
-                val currentCities = getCitiesFromPrefs(context).toMutableList()
+                val currentCities = WeatherRepository.getCities()
                 if (currentCities.any { it.equals(cityName, ignoreCase = true) }) {
                     _errorMessage.value = context.getString(R.string.error_city_already_added)
                     return@launch
                 }
-
-                currentCities.add(cityName)
-                saveCities(context, currentCities)
 
                 val weather = RetrofitClient.weatherApi.getCurrentWeather(cityName, apiKey)
                 WeatherRepository.setCachedCurrent(
@@ -88,29 +83,12 @@ class MainViewModel : ViewModel() {
         return RetrofitClient.weatherApi.getCurrentWeather(cityName, apiKey)
     }
 
-    private fun saveCities(context: Context, cityNames: List<String>) {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val json = JSONArray(cityNames).toString()
-        prefs.edit().putString(PREFS_KEY_CITIES, json).apply()
-    }
-
-    private fun getCitiesFromPrefs(context: Context): List<String> {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val json = prefs.getString(PREFS_KEY_CITIES, null) ?: return emptyList()
-        val jsonArray = JSONArray(json)
-        val list = mutableListOf<String>()
-        for (i in 0 until jsonArray.length()) {
-            list.add(jsonArray.getString(i))
-        }
-        return list
-    }
-
     private suspend fun loadCitiesData(context: Context, showLoading: Boolean = false) {
         if (showLoading) _uiState.value = MainUIState.Loading
 
         try {
             val apiKey = getApiKey(context)
-            val cityNames = getCitiesFromPrefs(context)
+            val cityNames = WeatherRepository.getCities()
             val cities = mutableListOf<CurrentWeather>()
 
             for (name in cityNames) {
@@ -134,7 +112,7 @@ class MainViewModel : ViewModel() {
         }
     }
 
-    fun loadCitiesFromPrefs(context: Context) {
+    fun loadCities(context: Context) {
         viewModelScope.launch {
             loadCitiesData(context, showLoading = true)
             WeatherRepository.cachedWeatherLiveData.observeForever(observer)
@@ -146,10 +124,7 @@ class MainViewModel : ViewModel() {
                 Constants.CacheLifetime.CACHE_VALIDITY_DURATION
     }
 
-    fun removeCity(cityName: String, context: Context) {
-        val currentCities = getCitiesFromPrefs(context).toMutableList()
-        currentCities.removeAll { it.equals(cityName, ignoreCase = true) }
-        saveCities(context, currentCities)
+    suspend fun removeCity(cityName: String, context: Context) {
         WeatherRepository.removeCity(cityName)
 
         viewModelScope.launch {
@@ -162,7 +137,7 @@ class MainViewModel : ViewModel() {
 
         refreshJob = viewModelScope.launch {
             while (isActive) {
-                val cityNames = getCitiesFromPrefs(context)
+                val cityNames = WeatherRepository.getCities()
                 var minDelay = Constants.CacheLifetime.CACHE_VALIDITY_DURATION
                 var dataChanged = false
 

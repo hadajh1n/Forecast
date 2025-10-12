@@ -75,7 +75,7 @@ class DetailViewModel : ViewModel() {
         return apiKey
     }
 
-    fun loadCityDetail(cityName: String, context: Context, showLoading: Boolean = true) {
+    suspend fun loadCityDetail(cityName: String, context: Context, showLoading: Boolean = true) {
         this.cityName = cityName
         this.context = context
         if (showLoading) _detailState.value = DetailUIState.Loading
