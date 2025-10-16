@@ -1,12 +1,12 @@
 package com.example.forecast
 
-import android.content.Context
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.room.Room
 import com.example.forecast.dataclass.CurrentWeather
 import com.example.forecast.dataclass.ForecastWeather
 import com.example.forecast.room.AppDatabase
+import com.example.forecast.room.WeatherApp
 import com.example.forecast.room.WeatherCacheEntity
 import com.google.gson.Gson
 
@@ -28,11 +28,9 @@ object WeatherRepository {
     val cachedWeatherLiveData:
             LiveData<Map<String, CachedWeatherData>> get() = _cachedWeatherLiveData
 
-    private lateinit var db: AppDatabase
-
-    fun init(context: Context) {
-        db = Room.databaseBuilder(
-            context.applicationContext,
+    private val db by lazy {
+        Room.databaseBuilder(
+            WeatherApp.instance.applicationContext,
             AppDatabase::class.java,
             "weather-db"
         ).build()
