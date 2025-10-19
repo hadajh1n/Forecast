@@ -129,8 +129,9 @@ class DetailViewModel : ViewModel() {
         cached: WeatherRepository.CachedWeatherData,
         context: Context
     ): DetailUIState.Success {
-        val dailyForecasts = groupForecastByDay(cached.forecast!!)
-        val uiForecast = dailyForecasts
+        val forecastList = cached.forecast?.let { groupForecastByDay(it) } ?: emptyList()
+
+        val uiForecast = forecastList
             .take(6)
             .map {
                 ForecastUI(

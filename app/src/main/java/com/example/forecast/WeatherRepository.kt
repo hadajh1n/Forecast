@@ -4,11 +4,17 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.room.Room
 import com.example.forecast.dataclass.CurrentWeather
+import com.example.forecast.dataclass.ForecastItem
+import com.example.forecast.dataclass.ForecastMain
 import com.example.forecast.dataclass.ForecastWeather
+import com.example.forecast.dataclass.Main
+import com.example.forecast.dataclass.Weather
 import com.example.forecast.room.AppDatabase
+import com.example.forecast.room.CityEntity
+import com.example.forecast.room.CurrentWeatherEntity
+import com.example.forecast.room.ForecastWeatherEntity
 import com.example.forecast.room.WeatherApp
-import com.example.forecast.room.WeatherCacheEntity
-import com.google.gson.Gson
+import kotlin.collections.map
 
 object WeatherRepository {
 
@@ -21,7 +27,6 @@ object WeatherRepository {
     )
 
     private var cachedDetails = mutableMapOf<String, CachedWeatherData>()
-    private val gson = Gson()
 
     private val _cachedWeatherLiveData =
         MutableLiveData<Map<String, CachedWeatherData>>(cachedDetails)
@@ -37,7 +42,7 @@ object WeatherRepository {
     }
 
     suspend fun getCities(): List<String> {
-        return db.weatherDao().getAll().map { it.cityName }
+        return db.cityDao().getActiveCities().map { it.cityName }
     }
 
     fun getTimestampCurrent(cityName: String): Long? = cachedDetails[cityName]?.timestampCurrent
@@ -51,24 +56,65 @@ object WeatherRepository {
     }
 
     private suspend fun loadFromDatabase(cityName: String) {
-        val entity = db.weatherDao().getForCity(cityName) ?: return
-        val current = entity.currentJson?.let { gson.fromJson(it, CurrentWeather::class.java) }
-        val forecast = entity.forecastJson?.let { gson.fromJson(it, ForecastWeather::class.java) }
-        cachedDetails[cityName] = CachedWeatherData(
-            current = current,
-            forecast = forecast,
-            timestampCurrent = entity.timestampCurrent,
-            timestampForecast = entity.timestampForecast,
-            orderIndex = entity.orderIndex
-        )
-        _cachedWeatherLiveData.value = cachedDetails
+        val cityEntity = db.cityDao().getActiveCities().find { it.cityName == cityName }
+        val currentEntity = db.currentWeatherDao().getForCity(cityName)
+        val forecastEntities = db.forecastWeatherDao().getForCity(cityName)
+
+        val current = currentEntity?.let {
+            CurrentWeather(
+                name = cityName,
+                main = Main(
+                    temp = it.temp,
+                ),
+                weather = listOf(
+                    Weather(
+                        icon = it.icon
+                    )
+                )
+            )
+        }
+
+        val forecast = if (forecastEntities.isNotEmpty()) {
+            ForecastWeather(
+                list = forecastEntities.map { entity ->
+                    ForecastItem(
+                        dt = entity.date,
+                        main = ForecastMain(
+                            temp = entity.temp,
+                            tempMin = entity.tempMin,
+                            tempMax = entity.tempMax
+                        ),
+                        weather = listOf(
+                            Weather(
+                                icon = entity.icon
+                            )
+                        )
+                    )
+                }
+            )
+        } else null
+
+        val timestampForecast = if (forecastEntities.isNotEmpty()) {
+            forecastEntities.first().timestamp
+        } else 0L
+
+        if (cityEntity != null || current != null || forecast != null) {
+            cachedDetails[cityName] = CachedWeatherData(
+                current = current,
+                forecast = forecast,
+                timestampCurrent = currentEntity?.timestamp ?: 0L,
+                timestampForecast = timestampForecast,
+                orderIndex = cityEntity?.orderIndex ?: 0
+            )
+            _cachedWeatherLiveData.value = cachedDetails
+        }
     }
 
     suspend fun setCachedCurrent(cityName: String, current: CurrentWeather, timestamp: Long) {
         val existing = getCachedDetails(cityName) ?: CachedWeatherData()
         var orderIndex = existing.orderIndex
         if (orderIndex == 0) {
-            orderIndex = (db.weatherDao().getMaxOrderIndex() ?: 0) + 1
+            orderIndex = (db.cityDao().getMaxOrderIndex() ?: 0) + 1
         }
 
         val newData = CachedWeatherData(
@@ -81,22 +127,27 @@ object WeatherRepository {
         cachedDetails[cityName] = newData
         _cachedWeatherLiveData.value = cachedDetails
 
-        val entity = WeatherCacheEntity(
+        val cityEntity = CityEntity(
             cityName = cityName,
-            currentJson = gson.toJson(current),
-            forecastJson = gson.toJson(existing.forecast),
-            timestampCurrent = timestamp,
-            timestampForecast = existing.timestampForecast,
-            orderIndex = orderIndex
+            orderIndex = orderIndex,
+            lastUpdated = timestamp
         )
-        db.weatherDao().insert(entity)
+        db.cityDao().insert(cityEntity)
+
+        val currentEntity = CurrentWeatherEntity(
+            cityName = cityName,
+            temp = current.main.temp,
+            icon = current.weather.firstOrNull()?.icon ?: "",
+            timestamp = timestamp
+        )
+        db.currentWeatherDao().insert(currentEntity)
     }
 
     suspend fun setCachedForecast(cityName: String, forecast: ForecastWeather, timestamp: Long) {
         val existing = getCachedDetails(cityName) ?: CachedWeatherData()
         var orderIndex = existing.orderIndex
         if (orderIndex == 0) {
-            orderIndex = (db.weatherDao().getMaxOrderIndex() ?: 0) + 1
+            orderIndex = (db.cityDao().getMaxOrderIndex() ?: 0) + 1
         }
 
         val newData = CachedWeatherData(
@@ -109,24 +160,33 @@ object WeatherRepository {
         cachedDetails[cityName] = newData
         _cachedWeatherLiveData.value = cachedDetails
 
-        val entity = WeatherCacheEntity(
+        val cityEntity = CityEntity(
             cityName = cityName,
-            currentJson = gson.toJson(existing.current),
-            forecastJson = gson.toJson(forecast),
-            timestampCurrent = existing.timestampCurrent,
-            timestampForecast = timestamp,
-            orderIndex = orderIndex
+            orderIndex = orderIndex,
+            lastUpdated = timestamp
         )
-        db.weatherDao().insert(entity)
+        db.cityDao().insert(cityEntity)
+
+        db.forecastWeatherDao().deleteForCity(cityName)
+
+        val forecastEntities = forecast.list.map { item ->
+            ForecastWeatherEntity(
+                cityName = cityName,
+                date = item.dt,
+                temp = item.main.temp,
+                tempMax = item.main.tempMax,
+                tempMin = item.main.tempMin,
+                icon = item.weather.firstOrNull()?.icon ?: "",
+                timestamp = timestamp
+            )
+        }
+        db.forecastWeatherDao().insert(forecastEntities)
     }
 
     suspend fun removeCity(cityName: String) {
         cachedDetails.remove(cityName)
         _cachedWeatherLiveData.value = cachedDetails
 
-        val entity = db.weatherDao().getForCity(cityName)
-        if (entity != null) {
-            db.weatherDao().delete(entity)
-        }
+        db.cityDao().softDelete(cityName, System.currentTimeMillis())
     }
 }
