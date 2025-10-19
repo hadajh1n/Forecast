@@ -42,7 +42,19 @@ object WeatherRepository {
     }
 
     suspend fun getCities(): List<String> {
-        return db.cityDao().getActiveCities().map { it.cityName }
+        val cities = db.cityDao().getActiveCities()
+        cities.forEach { city ->
+            if (!cachedDetails.containsKey(city.cityName)) {
+                cachedDetails[city.cityName] = CachedWeatherData(
+                    orderIndex = city.orderIndex,
+                    timestampCurrent = 0L,
+                    timestampForecast = 0L
+                )
+            }
+        }
+
+        _cachedWeatherLiveData.value = cachedDetails
+        return cities.map { it.cityName }
     }
 
     fun getTimestampCurrent(cityName: String): Long? = cachedDetails[cityName]?.timestampCurrent
