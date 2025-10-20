@@ -77,6 +77,9 @@ dependencies {
     // Serialization
     implementation(libs.serialization.json)
 
+    // WorkManager
+    implementation(libs.work.runtime.ktx)
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)

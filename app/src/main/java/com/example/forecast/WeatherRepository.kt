@@ -53,7 +53,7 @@ object WeatherRepository {
             }
         }
 
-        _cachedWeatherLiveData.value = cachedDetails
+        _cachedWeatherLiveData.postValue(cachedDetails)
         return cities.map { it.cityName }
     }
 
@@ -118,7 +118,7 @@ object WeatherRepository {
                 timestampForecast = timestampForecast,
                 orderIndex = cityEntity?.orderIndex ?: 0
             )
-            _cachedWeatherLiveData.value = cachedDetails
+            _cachedWeatherLiveData.postValue(cachedDetails)
         }
     }
 
@@ -137,7 +137,7 @@ object WeatherRepository {
             orderIndex = orderIndex
         )
         cachedDetails[cityName] = newData
-        _cachedWeatherLiveData.value = cachedDetails
+        _cachedWeatherLiveData.postValue(cachedDetails)
 
         val cityEntity = CityEntity(
             cityName = cityName,
@@ -170,7 +170,7 @@ object WeatherRepository {
             orderIndex = orderIndex
         )
         cachedDetails[cityName] = newData
-        _cachedWeatherLiveData.value = cachedDetails
+        _cachedWeatherLiveData.postValue(cachedDetails)
 
         val cityEntity = CityEntity(
             cityName = cityName,
@@ -197,7 +197,7 @@ object WeatherRepository {
 
     suspend fun removeCity(cityName: String) {
         cachedDetails.remove(cityName)
-        _cachedWeatherLiveData.value = cachedDetails
+        _cachedWeatherLiveData.postValue(cachedDetails)
 
         db.cityDao().softDelete(cityName, System.currentTimeMillis())
     }
