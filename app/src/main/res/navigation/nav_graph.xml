@@ -6,7 +6,7 @@
 
     <fragment
         android:id="@+id/cityFragment"
-        android:name="com.example.forecast.fragments.CityFragment"
+        android:name="com.example.forecast.ui.fragments.CityFragment"
         android:label="CityFragment" >
         <action
             android:id="@+id/action_cityFragment_to_detailFragment"
@@ -15,7 +15,7 @@
 
     <fragment
         android:id="@+id/detailFragment"
-        android:name="com.example.forecast.fragments.DetailFragment"
+        android:name="com.example.forecast.ui.fragments.DetailFragment"
         android:label="DetailFragment">
         <argument
             android:name="cityName"
