@@ -25,6 +25,7 @@ object WeatherRepository {
         val orderIndex: Int = 0
     )
 
+    private var cachedCities: List<CityEntity>? = null
     private var cachedDetails = mutableMapOf<String, CachedWeatherData>()
 
     private val _cachedWeatherLiveData =
@@ -42,8 +43,11 @@ object WeatherRepository {
     }
 
     suspend fun getCities(): List<String> {
-        val cities = db.cityDao().getActiveCities()
-        cities.forEach { city ->
+        if (cachedCities == null) {
+            cachedCities = db.cityDao().getActiveCities()
+        }
+
+        cachedCities?.forEach { city ->
             if (!cachedDetails.containsKey(city.cityName)) {
                 cachedDetails[city.cityName] = CachedWeatherData(
                     orderIndex = city.orderIndex,
@@ -54,7 +58,7 @@ object WeatherRepository {
         }
 
         _cachedWeatherLiveData.postValue(cachedDetails)
-        return cities.map { it.cityName }
+        return cachedCities?.map { it.cityName } ?: emptyList()
     }
 
     fun getTimestampCurrent(cityName: String): Long? = cachedDetails[cityName]?.timestampCurrent
@@ -146,6 +150,8 @@ object WeatherRepository {
         )
         db.cityDao().insert(cityEntity)
 
+        cachedCities = db.cityDao().getActiveCities()
+
         val currentEntity = CurrentWeatherEntity(
             cityName = cityName,
             temp = current.main.temp,
@@ -179,6 +185,8 @@ object WeatherRepository {
         )
         db.cityDao().insert(cityEntity)
 
+        cachedCities = db.cityDao().getActiveCities()
+
         db.forecastWeatherDao().deleteForCity(cityName)
 
         val forecastEntities = forecast.list.map { item ->
@@ -200,5 +208,6 @@ object WeatherRepository {
         _cachedWeatherLiveData.postValue(cachedDetails)
 
         db.cityDao().softDelete(cityName, System.currentTimeMillis())
+        cachedCities = db.cityDao().getActiveCities()
     }
 }
