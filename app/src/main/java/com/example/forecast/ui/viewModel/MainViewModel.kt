@@ -44,26 +44,16 @@ class MainViewModel : ViewModel() {
             _uiState.value = MainUIState.Success(cities)
     }
 
-    private fun getApiKey(context: Context) : String {
-        val apiKey = context.getString(R.string.weather_api_key)
-        if (apiKey.isEmpty()) {
-            throw IllegalStateException("Missing API key")
-        }
-
-        return apiKey
-    }
-
     fun addCity(cityName: String, context: Context) {
         viewModelScope.launch {
             try {
-                val apiKey = getApiKey(context)
                 val currentCities = WeatherRepository.getCities()
                 if (currentCities.any { it.equals(cityName, ignoreCase = true) }) {
                     _errorMessage.value = context.getString(R.string.error_city_already_added)
                     return@launch
                 }
 
-                val weather = RetrofitClient.weatherApi.getCurrentWeather(cityName, apiKey)
+                val weather = RetrofitClient.weatherApi.getCurrentWeather(cityName)
                 WeatherRepository.setCachedCurrent(
                     cityName,
                     weather,
@@ -77,17 +67,15 @@ class MainViewModel : ViewModel() {
     }
 
     private suspend fun fetchCurrentWeatherForCity(
-        cityName: String,
-        apiKey: String
+        cityName: String
     ): CurrentWeather {
-        return RetrofitClient.weatherApi.getCurrentWeather(cityName, apiKey)
+        return RetrofitClient.weatherApi.getCurrentWeather(cityName)
     }
 
     private suspend fun loadCitiesData(context: Context, showLoading: Boolean = false) {
         if (showLoading) _uiState.value = MainUIState.Loading
 
         try {
-            val apiKey = getApiKey(context)
             val cityNames = WeatherRepository.getCities()
             val cities = mutableListOf<CurrentWeather>()
 
@@ -96,7 +84,7 @@ class MainViewModel : ViewModel() {
                 if (cached?.current != null && isCachedValidCurrent(cached.timestampCurrent)) {
                     cities.add(cached.current)
                 } else {
-                    val weather = fetchCurrentWeatherForCity(name, apiKey)
+                    val weather = fetchCurrentWeatherForCity(name)
                     WeatherRepository.setCachedCurrent(
                         name,
                         weather,
@@ -146,8 +134,7 @@ class MainViewModel : ViewModel() {
                     val age = System.currentTimeMillis() - timestamp
                     if (age >= Constants.CacheLifetime.CACHE_VALIDITY_DURATION) {
                         try {
-                            val apiKey = getApiKey(context)
-                            val weather = fetchCurrentWeatherForCity(name, apiKey)
+                            val weather = fetchCurrentWeatherForCity(name)
                             WeatherRepository.setCachedCurrent(
                                 name,
                                 weather,

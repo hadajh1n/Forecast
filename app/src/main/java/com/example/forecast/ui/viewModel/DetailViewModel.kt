@@ -68,15 +68,6 @@ class DetailViewModel : ViewModel() {
         WeatherRepository.cachedWeatherLiveData.observeForever(observer)
     }
 
-    private fun getApiKey(context: Context) : String {
-        val apiKey = context.getString(R.string.weather_api_key)
-        if (apiKey.isEmpty()) {
-            throw IllegalStateException("Missing API key")
-        }
-
-        return apiKey
-    }
-
     suspend fun loadCityDetail(cityName: String, context: Context, showLoading: Boolean = true) {
         this.cityName = cityName
         this.context = context
@@ -95,16 +86,15 @@ class DetailViewModel : ViewModel() {
 
         viewModelScope.launch {
             try {
-                val apiKey = getApiKey(context)
                 if (!isCurrentValid) {
-                    val current = RetrofitClient.weatherApi.getCurrentWeather(cityName, apiKey)
+                    val current = RetrofitClient.weatherApi.getCurrentWeather(cityName)
                     WeatherRepository.setCachedCurrent(cityName,
                         current,
                         System.currentTimeMillis()
                     )
                 }
                 if (!isForecastValid) {
-                    val forecast = RetrofitClient.weatherApi.getForecast(cityName, apiKey)
+                    val forecast = RetrofitClient.weatherApi.getForecast(cityName)
                     WeatherRepository.setCachedForecast(cityName,
                         forecast,
                         System.currentTimeMillis()
@@ -219,16 +209,15 @@ class DetailViewModel : ViewModel() {
                 }
 
                 try {
-                    val apiKey = getApiKey(context)
                     if (needCurrent) {
-                        val current = RetrofitClient.weatherApi.getCurrentWeather(cityName, apiKey)
+                        val current = RetrofitClient.weatherApi.getCurrentWeather(cityName)
                         WeatherRepository.setCachedCurrent(
                             cityName,
                             current,
                             System.currentTimeMillis())
                     }
                     if (needForecast) {
-                        val forecast = RetrofitClient.weatherApi.getForecast(cityName, apiKey)
+                        val forecast = RetrofitClient.weatherApi.getForecast(cityName)
                         WeatherRepository.setCachedForecast(
                             cityName,
                             forecast,

@@ -4,7 +4,6 @@ import android.content.Context
 import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.example.forecast.R
 import com.example.forecast.data.repository.WeatherRepository
 import com.example.forecast.network.retrofit.RetrofitClient
 
@@ -19,15 +18,14 @@ class WeatherUpdateWorker(
 
     override suspend fun doWork(): Result {
         return try {
-            val apiKey = context.getString(R.string.weather_api_key)
             val cities = WeatherRepository.getCities()
 
             for (city in cities) {
                 try {
-                    val current = RetrofitClient.weatherApi.getCurrentWeather(city, apiKey)
+                    val current = RetrofitClient.weatherApi.getCurrentWeather(city)
                     WeatherRepository.setCachedCurrent(city, current, System.currentTimeMillis())
 
-                    val forecast = RetrofitClient.weatherApi.getForecast(city, apiKey)
+                    val forecast = RetrofitClient.weatherApi.getForecast(city)
                     WeatherRepository.setCachedForecast(city, forecast, System.currentTimeMillis())
                 } catch (e: Exception) {
                     Log.e(TAG, "Ошибка обновления для $city", e)
