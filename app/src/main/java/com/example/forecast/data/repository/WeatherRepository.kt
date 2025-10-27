@@ -14,6 +14,9 @@ import com.example.forecast.data.room.AppDatabase
 import com.example.forecast.data.room.CityEntity
 import com.example.forecast.data.room.CurrentWeatherEntity
 import com.example.forecast.data.room.ForecastWeatherEntity
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import java.util.concurrent.ConcurrentHashMap
 
 object WeatherRepository {
 
@@ -26,7 +29,8 @@ object WeatherRepository {
     )
 
     private var cachedCities: List<CityEntity>? = null
-    private var cachedDetails = mutableMapOf<String, CachedWeatherData>()
+    private val cachedCitiesMutex = Mutex()
+    private val cachedDetails = ConcurrentHashMap<String, CachedWeatherData>()
 
     private val _cachedWeatherLiveData =
         MutableLiveData<Map<String, CachedWeatherData>>(cachedDetails)
@@ -36,13 +40,13 @@ object WeatherRepository {
 
     private val db by lazy {
         Room.databaseBuilder(
-            WeatherApp.Companion.instance.applicationContext,
+            WeatherApp.instance.applicationContext,
             AppDatabase::class.java,
             "weather-db"
         ).build()
     }
 
-    suspend fun getCities(): List<String> {
+    suspend fun getCities(): List<String> = cachedCitiesMutex.withLock {
         if (cachedCities == null) {
             cachedCities = db.cityDao().getActiveCities()
         }
@@ -126,7 +130,11 @@ object WeatherRepository {
         }
     }
 
-    suspend fun setCachedCurrent(cityName: String, current: CurrentWeather, timestamp: Long) {
+    suspend fun setCachedCurrent(
+        cityName: String,
+        current: CurrentWeather,
+        timestamp: Long
+    ) = cachedCitiesMutex.withLock {
         val existing = getCachedDetails(cityName) ?: CachedWeatherData()
         var orderIndex = existing.orderIndex
         if (orderIndex == 0) {
@@ -161,7 +169,11 @@ object WeatherRepository {
         db.currentWeatherDao().insert(currentEntity)
     }
 
-    suspend fun setCachedForecast(cityName: String, forecast: ForecastWeather, timestamp: Long) {
+    suspend fun setCachedForecast(
+        cityName: String,
+        forecast: ForecastWeather,
+        timestamp: Long
+    ) = cachedCitiesMutex.withLock {
         val existing = getCachedDetails(cityName) ?: CachedWeatherData()
         var orderIndex = existing.orderIndex
         if (orderIndex == 0) {
@@ -203,7 +215,7 @@ object WeatherRepository {
         db.forecastWeatherDao().insert(forecastEntities)
     }
 
-    suspend fun removeCity(cityName: String) {
+    suspend fun removeCity(cityName: String) = cachedCitiesMutex.withLock {
         cachedDetails.remove(cityName)
         _cachedWeatherLiveData.postValue(cachedDetails)
 
