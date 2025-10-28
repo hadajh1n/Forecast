@@ -6,75 +6,85 @@
     android:layout_height="match_parent"
     android:background="@color/activity_detail">
 
-    <ScrollView
-        android:id="@+id/scrollView2"
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/swipeRefreshLayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:fillViewport="true"
+        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
-        <LinearLayout
-            android:id="@+id/main"
+        <ScrollView
+            android:id="@+id/scrollView2"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:layout_height="match_parent"
+            android:fillViewport="true"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
 
             <LinearLayout
-                android:id="@+id/contentContainer"
+                android:id="@+id/main"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:visibility="gone"
-                tools:visibility="visible">
+                android:orientation="vertical">
 
-                <androidx.constraintlayout.widget.ConstraintLayout
-                    android:id="@+id/llCity"
+                <LinearLayout
+                    android:id="@+id/contentContainer"
                     android:layout_width="match_parent"
-                    android:layout_height="300dp"
-                    android:orientation="vertical">
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone"
+                    tools:visibility="visible">
 
-                    <TextView
-                        android:id="@+id/tvCity"
-                        style="@style/tvCityDetailActivity"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="100dp"
-                        android:gravity="center"
-                        app:layout_constraintEnd_toEndOf="parent"
-                        app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintTop_toTopOf="parent"
-                        tools:text="Орел" />
+                    <androidx.constraintlayout.widget.ConstraintLayout
+                        android:id="@+id/llCity"
+                        android:layout_width="match_parent"
+                        android:layout_height="300dp"
+                        android:orientation="vertical">
 
-                    <TextView
-                        android:id="@+id/tvTemperature"
-                        style="@style/tvTemperatureDetailActivity"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="20dp"
-                        app:layout_constraintEnd_toEndOf="@+id/tvCity"
-                        app:layout_constraintStart_toStartOf="@+id/tvCity"
-                        app:layout_constraintTop_toBottomOf="@+id/tvCity"
-                        tools:text="21°C" />
+                        <TextView
+                            android:id="@+id/tvCity"
+                            style="@style/tvCityDetailActivity"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="100dp"
+                            android:gravity="center"
+                            app:layout_constraintEnd_toEndOf="parent"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintTop_toTopOf="parent"
+                            tools:text="Орел" />
 
-                    <ImageView
-                        android:id="@+id/imWeather"
-                        android:layout_width="50dp"
-                        android:layout_height="50dp"
-                        android:layout_marginTop="20dp"
-                        app:layout_constraintEnd_toEndOf="@+id/tvTemperature"
-                        app:layout_constraintStart_toStartOf="@+id/tvTemperature"
-                        app:layout_constraintTop_toBottomOf="@id/tvTemperature" />
-                </androidx.constraintlayout.widget.ConstraintLayout>
+                        <TextView
+                            android:id="@+id/tvTemperature"
+                            style="@style/tvTemperatureDetailActivity"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="20dp"
+                            app:layout_constraintEnd_toEndOf="@+id/tvCity"
+                            app:layout_constraintStart_toStartOf="@+id/tvCity"
+                            app:layout_constraintTop_toBottomOf="@+id/tvCity"
+                            tools:text="21°C" />
 
-                <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/rvWeather"
-                    android:layout_width="match_parent"
-                    android:layout_height="400dp" />
+                        <ImageView
+                            android:id="@+id/imWeather"
+                            android:layout_width="50dp"
+                            android:layout_height="50dp"
+                            android:layout_marginTop="20dp"
+                            app:layout_constraintEnd_toEndOf="@+id/tvTemperature"
+                            app:layout_constraintStart_toStartOf="@+id/tvTemperature"
+                            app:layout_constraintTop_toBottomOf="@id/tvTemperature" />
+                    </androidx.constraintlayout.widget.ConstraintLayout>
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvWeather"
+                        android:layout_width="match_parent"
+                        android:layout_height="400dp" />
+                </LinearLayout>
+
             </LinearLayout>
-
-        </LinearLayout>
-    </ScrollView>
+        </ScrollView>
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
     <ProgressBar
         android:id="@+id/progressBar"

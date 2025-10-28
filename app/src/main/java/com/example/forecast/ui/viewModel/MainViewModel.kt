@@ -36,6 +36,7 @@ class MainViewModel : ViewModel() {
     val errorMessage : LiveData<String> get() = _errorMessage
 
     private var refreshJob: Job? = null
+    private var isObserverAdded = false
 
     private val observer =
         Observer<Map<String, WeatherRepository.CachedWeatherData>> { cachedDetails ->
@@ -103,7 +104,10 @@ class MainViewModel : ViewModel() {
     fun loadCities(context: Context) {
         viewModelScope.launch {
             loadCitiesData(context, showLoading = true)
-            WeatherRepository.cachedWeatherLiveData.observeForever(observer)
+            if (!isObserverAdded) {
+                WeatherRepository.cachedWeatherLiveData.observeForever(observer)
+                isObserverAdded = true
+            }
         }
     }
 
@@ -162,6 +166,37 @@ class MainViewModel : ViewModel() {
         }
     }
 
+    fun refreshCitiesSwipe(context: Context) {
+        viewModelScope.launch {
+            val cityNames = WeatherRepository.getCities()
+            if (cityNames.isEmpty()) {
+                _uiState.value = MainUIState.Success(emptyList())
+                return@launch
+            }
+
+            stopRefresh()
+            _uiState.value = MainUIState.Loading
+            try {
+                val cities = mutableListOf<CurrentWeather>()
+
+                for (name in cityNames) {
+                    val weather = fetchCurrentWeatherForCity(name)
+                    WeatherRepository.setCachedCurrent(
+                        name,
+                        weather,
+                        System.currentTimeMillis()
+                    )
+                    cities.add(weather)
+                }
+                _uiState.value = MainUIState.Success(cities)
+            } catch (e: Exception) {
+                _uiState.value = MainUIState.Error(context.getString(R.string.error_load_cities))
+            } finally {
+                startRefresh(context)
+            }
+        }
+    }
+
     fun stopRefresh() {
         refreshJob?.cancel()
         refreshJob = null
@@ -171,5 +206,6 @@ class MainViewModel : ViewModel() {
         super.onCleared()
         WeatherRepository.cachedWeatherLiveData.removeObserver(observer)
         stopRefresh()
+        isObserverAdded = false
     }
 }

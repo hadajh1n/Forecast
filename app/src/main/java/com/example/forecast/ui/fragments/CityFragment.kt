@@ -65,6 +65,7 @@ class CityFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         setupRecyclerView()
+        setupSwipeRefresh()
         observeViewModelState()
         observeMessageError()
         setupItemTouchHelper()
@@ -94,6 +95,12 @@ class CityFragment : Fragment() {
         dialogInput?.removeTextChangedListener(textWatcher)
         dialogInput = null
         _binding = null
+    }
+
+    private fun setupSwipeRefresh() = with(binding) {
+        swipeRefreshLayout.setOnRefreshListener {
+            viewModel.refreshCitiesSwipe(requireContext())
+        }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -126,6 +133,7 @@ class CityFragment : Fragment() {
     }
 
     private fun handleSuccessState(state: MainUIState.Success) = with(binding) {
+        swipeRefreshLayout.isRefreshing = false
         progressBar.visibility = View.GONE
         errorContainer.visibility = View.GONE
         cvCity.visibility = if (state.cities.isEmpty()) View.GONE else View.VISIBLE
@@ -135,6 +143,7 @@ class CityFragment : Fragment() {
     }
 
     private fun handleErrorState(state: MainUIState.Error) = with(binding) {
+        swipeRefreshLayout.isRefreshing = false
         progressBar.visibility = View.GONE
         cvCity.visibility = View.GONE
         btnAddCity.visibility = View.GONE

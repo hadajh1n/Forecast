@@ -42,6 +42,7 @@ class DetailFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         setupRecyclerView()
+        setupSwipeRefresh()
         setupCityName()
         observeViewModel()
         setupRetryButton()
@@ -67,6 +68,12 @@ class DetailFragment : Fragment() {
         super.onDestroyView()
         Glide.with(binding.imWeather).clear(binding.imWeather)
         _binding = null
+    }
+
+    private fun setupSwipeRefresh() = with(binding) {
+        swipeRefreshLayout.setOnRefreshListener {
+            viewModel.refreshDetailsSwipe(cityName, requireContext())
+        }
     }
 
     private fun setupRecyclerView() = with(binding) {
@@ -96,6 +103,7 @@ class DetailFragment : Fragment() {
     }
 
     private fun handleSuccessState(state: DetailUIState.Success) = with(binding) {
+        swipeRefreshLayout.isRefreshing = false
         progressBar.visibility = View.GONE
         errorContainer.visibility = View.GONE
 
@@ -114,6 +122,7 @@ class DetailFragment : Fragment() {
     }
 
     private fun handleErrorState(state: DetailUIState.Error) = with(binding) {
+        swipeRefreshLayout.isRefreshing = false
         progressBar.visibility = View.GONE
         contentContainer.visibility = View.GONE
         errorContainer.visibility = View.VISIBLE

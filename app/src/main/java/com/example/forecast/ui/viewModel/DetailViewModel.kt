@@ -53,6 +53,7 @@ class DetailViewModel : ViewModel() {
     private var refreshJob: Job? = null
     private var cityName: String? = null
     private var context: Context? = null
+    private var isObserverAdded = false
 
     private val observer =
         Observer<Map<String, WeatherRepository.CachedWeatherData>> { cachedDetails ->
@@ -65,7 +66,10 @@ class DetailViewModel : ViewModel() {
     }
 
     init {
-        WeatherRepository.cachedWeatherLiveData.observeForever(observer)
+        if (!isObserverAdded) {
+            WeatherRepository.cachedWeatherLiveData.observeForever(observer)
+            isObserverAdded = true
+        }
     }
 
     suspend fun loadCityDetail(cityName: String, context: Context, showLoading: Boolean = true) {
@@ -88,14 +92,16 @@ class DetailViewModel : ViewModel() {
             try {
                 if (!isCurrentValid) {
                     val current = RetrofitClient.weatherApi.getCurrentWeather(cityName)
-                    WeatherRepository.setCachedCurrent(cityName,
+                    WeatherRepository.setCachedCurrent(
+                        cityName,
                         current,
                         System.currentTimeMillis()
                     )
                 }
                 if (!isForecastValid) {
                     val forecast = RetrofitClient.weatherApi.getForecast(cityName)
-                    WeatherRepository.setCachedForecast(cityName,
+                    WeatherRepository.setCachedForecast(
+                        cityName,
                         forecast,
                         System.currentTimeMillis()
                     )
@@ -103,6 +109,46 @@ class DetailViewModel : ViewModel() {
             } catch (e: Exception) {
                 _detailState.value =
                     DetailUIState.Error(context.getString(R.string.error_fetch_current_weather))
+            }
+        }
+    }
+
+    fun refreshDetailsSwipe(cityName: String, context: Context) {
+        this.cityName = cityName
+        this.context = context
+        viewModelScope.launch {
+            stopRefresh()
+            _detailState.value = DetailUIState.Loading
+            try {
+                val current = RetrofitClient.weatherApi.getCurrentWeather(cityName)
+                WeatherRepository.setCachedCurrent(
+                    cityName,
+                    current,
+                    System.currentTimeMillis()
+                )
+
+                val forecast = RetrofitClient.weatherApi.getForecast(cityName)
+                WeatherRepository.setCachedForecast(
+                    cityName,
+                    forecast,
+                    System.currentTimeMillis()
+                )
+
+                WeatherRepository.getCachedDetails(cityName)?.let { cachedData ->
+                    if (cachedData.current != null && cachedData.forecast != null) {
+                        _detailState.value = mapToUI(cachedData, context)
+                    } else {
+                        _detailState.value =
+                            DetailUIState.Error(
+                                context.getString(R.string.error_fetch_current_weather)
+                            )
+                    }
+                }
+            } catch (e: Exception) {
+                _detailState.value =
+                    DetailUIState.Error(context.getString(R.string.error_fetch_current_weather))
+            } finally {
+                startRefresh(cityName, context)
             }
         }
     }
@@ -248,5 +294,6 @@ class DetailViewModel : ViewModel() {
         super.onCleared()
         WeatherRepository.cachedWeatherLiveData.removeObserver(observer)
         stopRefresh()
+        isObserverAdded = false
     }
 }

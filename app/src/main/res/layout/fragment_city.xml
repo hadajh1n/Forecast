@@ -6,63 +6,73 @@
     android:layout_height="match_parent"
     android:background="@color/activity_main">
 
-    <androidx.core.widget.NestedScrollView
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/swipeRefreshLayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:fillViewport="true">
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
-        <LinearLayout
-            android:id="@+id/main"
+        <androidx.core.widget.NestedScrollView
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="25dp"
-            android:gravity="center_horizontal">
+            android:layout_height="match_parent"
+            android:fillViewport="true">
 
-            <androidx.cardview.widget.CardView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                app:cardBackgroundColor="@color/item_city"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="4dp">
-
-                <TextView
-                    android:id="@+id/tvAddFirstCity"
-                    style="@style/tvAddFirstCity"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center"
-                    android:padding="15dp"
-                    android:text="@string/add_first_city"
-                    tools:text="Добавьте свой первый город" />
-            </androidx.cardview.widget.CardView>
-
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cvCity"
+            <LinearLayout
+                android:id="@+id/main"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="4dp">
+                android:orientation="vertical"
+                android:padding="25dp"
+                android:gravity="center_horizontal">
 
-                <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/rvCity"
+                <androidx.cardview.widget.CardView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:cardBackgroundColor="@color/item_city"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="4dp">
+
+                    <TextView
+                        android:id="@+id/tvAddFirstCity"
+                        style="@style/tvAddFirstCity"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:padding="15dp"
+                        android:text="@string/add_first_city"
+                        tools:text="Добавьте свой первый город" />
+                </androidx.cardview.widget.CardView>
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cvCity"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:padding="8dp"
-                    android:nestedScrollingEnabled="false" />
-            </com.google.android.material.card.MaterialCardView>
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="4dp">
 
-            <ImageButton
-                android:id="@+id/btnAddCity"
-                android:layout_width="75dp"
-                android:layout_height="75dp"
-                android:layout_gravity="center"
-                android:layout_marginTop="10dp"
-                android:backgroundTint="@color/transparent"
-                android:scaleType="centerCrop"
-                android:src="@drawable/btn_add" />
-        </LinearLayout>
-    </androidx.core.widget.NestedScrollView>
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvCity"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:padding="8dp"
+                        android:nestedScrollingEnabled="false" />
+                </com.google.android.material.card.MaterialCardView>
+
+                <ImageButton
+                    android:id="@+id/btnAddCity"
+                    android:layout_width="75dp"
+                    android:layout_height="75dp"
+                    android:layout_gravity="center"
+                    android:layout_marginTop="10dp"
+                    android:backgroundTint="@color/transparent"
+                    android:scaleType="centerCrop"
+                    android:src="@drawable/btn_add" />
+            </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
     <ProgressBar
         android:id="@+id/progressBar"

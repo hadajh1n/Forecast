@@ -80,6 +80,9 @@ dependencies {
     // WorkManager
     implementation(libs.work.runtime.ktx)
 
+    // SwipeRefreshLayout
+    implementation(libs.androidx.swiperefreshlayout)
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
