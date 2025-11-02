@@ -7,6 +7,5 @@ import androidx.room.PrimaryKey
 data class CityEntity(
     @PrimaryKey val cityName: String,
     val orderIndex: Int,
-    val isActive: Boolean = true,
     val lastUpdated: Long = 0L
 )

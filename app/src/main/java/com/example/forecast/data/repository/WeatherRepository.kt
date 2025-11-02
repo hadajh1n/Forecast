@@ -219,7 +219,7 @@ object WeatherRepository {
         cachedDetails.remove(cityName)
         _cachedWeatherLiveData.postValue(cachedDetails)
 
-        db.cityDao().softDelete(cityName, System.currentTimeMillis())
+        db.cityDao().delete(cityName)
         cachedCities = db.cityDao().getActiveCities()
     }
 }
