@@ -29,7 +29,7 @@ object WeatherRepository {
     )
 
     private var cachedCities: List<CityEntity>? = null
-    private val cachedCitiesMutex = Mutex()
+    private val cacheMutex = Mutex()
     private val cachedDetails = ConcurrentHashMap<String, CachedWeatherData>()
 
     private val _cachedWeatherLiveData =
@@ -46,7 +46,7 @@ object WeatherRepository {
         ).build()
     }
 
-    suspend fun getCities(): List<String> = cachedCitiesMutex.withLock {
+    suspend fun getCities(): List<String> = cacheMutex.withLock {
         if (cachedCities == null) {
             cachedCities = db.cityDao().getActiveCities()
         }
@@ -68,7 +68,7 @@ object WeatherRepository {
     fun getTimestampCurrent(cityName: String): Long? = cachedDetails[cityName]?.timestampCurrent
     fun getTimestampForecast(cityName: String): Long? = cachedDetails[cityName]?.timestampForecast
 
-    suspend fun getCachedDetails(cityName: String): CachedWeatherData? {
+    suspend fun getCachedDetails(cityName: String): CachedWeatherData? = cacheMutex.withLock {
         if (!cachedDetails.containsKey(cityName)) {
             loadFromDatabase(cityName)
         }
@@ -134,8 +134,8 @@ object WeatherRepository {
         cityName: String,
         current: CurrentWeather,
         timestamp: Long
-    ) = cachedCitiesMutex.withLock {
-        val existing = getCachedDetails(cityName) ?: CachedWeatherData()
+    ) = cacheMutex.withLock {
+        val existing = cachedDetails[cityName] ?: CachedWeatherData()
         var orderIndex = existing.orderIndex
         if (orderIndex == 0) {
             orderIndex = (db.cityDao().getMaxOrderIndex() ?: 0) + 1
@@ -173,8 +173,8 @@ object WeatherRepository {
         cityName: String,
         forecast: ForecastWeather,
         timestamp: Long
-    ) = cachedCitiesMutex.withLock {
-        val existing = getCachedDetails(cityName) ?: CachedWeatherData()
+    ) = cacheMutex.withLock {
+        val existing = cachedDetails[cityName] ?: CachedWeatherData()
         var orderIndex = existing.orderIndex
         if (orderIndex == 0) {
             orderIndex = (db.cityDao().getMaxOrderIndex() ?: 0) + 1
@@ -215,7 +215,7 @@ object WeatherRepository {
         db.forecastWeatherDao().insert(forecastEntities)
     }
 
-    suspend fun removeCity(cityName: String) = cachedCitiesMutex.withLock {
+    suspend fun removeCity(cityName: String) = cacheMutex.withLock {
         cachedDetails.remove(cityName)
         _cachedWeatherLiveData.postValue(cachedDetails)
 
