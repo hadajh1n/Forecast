@@ -69,6 +69,7 @@ class CityFragment : Fragment() {
         observeViewModelState()
         observeMessageError()
         setupItemTouchHelper()
+        setupAddCityTextView()
         setupAddCityButton()
         setupRetryButton()
         restoreDialogState(savedInstanceState)
@@ -185,11 +186,18 @@ class CityFragment : Fragment() {
         ItemTouchHelper(itemTouchHelperCallback).attachToRecyclerView(binding.rvCity)
     }
 
+    private fun setupAddCityTextView() {
+        binding.tvAddFirstCity.setOnClickListener {
+            showAddCityDialog()
+        }
+    }
+
     private fun setupAddCityButton() {
         binding.btnAddCity.setOnClickListener {
             showAddCityDialog()
         }
     }
+
 
     private fun setupRetryButton() {
         binding.btnRetry.setOnClickListener {
