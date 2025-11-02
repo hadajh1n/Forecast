@@ -100,12 +100,14 @@ class DetailFragment : Fragment() {
         progressBar.visibility = View.VISIBLE
         contentContainer.visibility = View.GONE
         errorContainer.visibility = View.GONE
+        swipeRefreshLayout.isEnabled = false
     }
 
     private fun handleSuccessState(state: DetailUIState.Success) = with(binding) {
         swipeRefreshLayout.isRefreshing = false
         progressBar.visibility = View.GONE
         errorContainer.visibility = View.GONE
+        swipeRefreshLayout.isEnabled = true
 
         if (state.forecast.isEmpty()) {
             contentContainer.visibility = View.GONE
@@ -127,6 +129,7 @@ class DetailFragment : Fragment() {
         contentContainer.visibility = View.GONE
         errorContainer.visibility = View.VISIBLE
         tvError.text = state.message
+        swipeRefreshLayout.isEnabled = false
     }
 
     private fun setupRetryButton() {

@@ -175,7 +175,6 @@ class MainViewModel : ViewModel() {
             }
 
             stopRefresh()
-            _uiState.value = MainUIState.Loading
             try {
                 val cities = mutableListOf<CurrentWeather>()
 

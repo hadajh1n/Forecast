@@ -130,6 +130,7 @@ class CityFragment : Fragment() {
         errorContainer.visibility = View.GONE
         tvAddFirstCity.visibility = View.GONE
         btnAddCity.visibility = View.GONE
+        swipeRefreshLayout.isEnabled = false
     }
 
     private fun handleSuccessState(state: MainUIState.Success) = with(binding) {
@@ -140,6 +141,7 @@ class CityFragment : Fragment() {
         tvAddFirstCity.visibility = if (state.cities.isEmpty()) View.VISIBLE else View.GONE
         btnAddCity.visibility = View.VISIBLE
         cityAdapter.updateCities(state.cities)
+        swipeRefreshLayout.isEnabled = true
     }
 
     private fun handleErrorState(state: MainUIState.Error) = with(binding) {
@@ -150,6 +152,7 @@ class CityFragment : Fragment() {
         errorContainer.visibility = View.VISIBLE
         tvAddFirstCity.visibility = View.GONE
         tvErrorLoadCities.text = state.message
+        swipeRefreshLayout.isEnabled = false
     }
 
     private fun observeMessageError() {

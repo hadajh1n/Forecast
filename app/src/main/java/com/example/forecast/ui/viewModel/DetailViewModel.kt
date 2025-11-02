@@ -118,7 +118,6 @@ class DetailViewModel : ViewModel() {
         this.context = context
         viewModelScope.launch {
             stopRefresh()
-            _detailState.value = DetailUIState.Loading
             try {
                 val current = RetrofitClient.weatherApi.getCurrentWeather(cityName)
                 WeatherRepository.setCachedCurrent(
