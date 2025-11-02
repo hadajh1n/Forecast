@@ -10,7 +10,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 object RetrofitClient {
     private const val BASE_URL = "https://api.openweathermap.org/data/2.5/"
 
-    fun getApiKey(context: Context) : String {
+    private fun getApiKey(context: Context) : String {
         val apiKey = context.getString(R.string.weather_api_key)
         if (apiKey.isEmpty()) {
             throw IllegalStateException("Missing API key")
