@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.forecast.core.utils.Constants
 import com.example.forecast.R
+import com.example.forecast.core.utils.Event
 import com.example.forecast.data.repository.WeatherRepository
 import com.example.forecast.data.dataclass.ForecastItem
 import com.example.forecast.data.dataclass.ForecastMain
@@ -49,6 +50,9 @@ class DetailViewModel : ViewModel() {
 
     private val _detailState = MutableLiveData<DetailUIState>()
     val detailState: LiveData<DetailUIState> get() = _detailState
+
+    private val _messageEvent = MutableLiveData<Event<String>>()
+    val messageEvent: LiveData<Event<String>> get() = _messageEvent
 
     private var refreshJob: Job? = null
     private var cityName: String? = null
@@ -144,8 +148,7 @@ class DetailViewModel : ViewModel() {
                     }
                 }
             } catch (e: Exception) {
-                _detailState.value =
-                    DetailUIState.Error(context.getString(R.string.error_fetch_current_weather))
+                _messageEvent.postValue(Event(context.getString(R.string.error_pull_to_refresh)))
             } finally {
                 startRefresh(cityName, context)
             }

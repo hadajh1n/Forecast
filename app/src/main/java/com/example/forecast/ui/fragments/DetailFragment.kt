@@ -5,6 +5,7 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
 import com.example.forecast.ui.adapter.DetailAdapter
 import com.example.forecast.ui.viewModel.DetailViewModel
 import androidx.fragment.app.viewModels
@@ -15,6 +16,7 @@ import com.bumptech.glide.Glide
 import com.example.forecast.R
 import com.example.forecast.databinding.FragmentDetailBinding
 import com.example.forecast.ui.viewModel.DetailUIState
+import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.launch
 
 class DetailFragment : Fragment() {
@@ -43,6 +45,7 @@ class DetailFragment : Fragment() {
 
         setupRecyclerView()
         setupSwipeRefresh()
+        observeMessageEvents()
         setupCityName()
         observeViewModel()
         setupRetryButton()
@@ -73,6 +76,21 @@ class DetailFragment : Fragment() {
     private fun setupSwipeRefresh() = with(binding) {
         swipeRefreshLayout.setOnRefreshListener {
             viewModel.refreshDetailsSwipe(cityName, requireContext())
+        }
+    }
+
+    private fun observeMessageEvents() {
+        viewModel.messageEvent.observe(viewLifecycleOwner) { event ->
+            event.getContentIfNotHandled()?.let { message ->
+                 Snackbar.make(binding.tvCity, message, Snackbar.LENGTH_LONG)
+                    .setAnchorView(binding.tvCity)
+                    .setBackgroundTint(ContextCompat.getColor(
+                        requireContext(),
+                        R.color.errorSnackbarPullToRefresh)
+                    )
+                    .setTextColor(ContextCompat.getColor(requireContext(), android.R.color.white))
+                    .show()
+            }
         }
     }
 

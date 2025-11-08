@@ -16,4 +16,5 @@
     <color name="errorContainer">#F60000</color>
     <color name="progress_bar_color_black">#FF000000</color>
     <color name="progress_bar_color_white">#FFFFFFFF</color>
+    <color name="errorSnackbarPullToRefresh">#F60000</color>
 </resources>

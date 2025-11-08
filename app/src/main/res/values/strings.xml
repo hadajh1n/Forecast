@@ -18,6 +18,7 @@
     <string name="unknown_city">Неизвестный город</string>
     <string name="error_loading_data">Ошибка загрузки данных</string>
     <string name="error_no_data">Нет данных</string>
+    <string name="error_pull_to_refresh">Нет подключения к Интернету</string>
     // Формат температуры
     <string name="temperature_format">%d°C</string>
     // Пустой список городов

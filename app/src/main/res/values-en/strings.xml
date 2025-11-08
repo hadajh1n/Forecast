@@ -16,6 +16,7 @@
     <string name="unknown_city">Unknown city</string>
     <string name="error_loading_data">Error loading data</string>
     <string name="error_no_data">No data</string>
+    <string name="error_pull_to_refresh">No internet connection</string>
     // Temperature Format
     <string name="temperature_format">%d°C</string>
     // Empty list city
