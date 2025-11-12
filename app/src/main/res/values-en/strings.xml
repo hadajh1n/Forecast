@@ -17,6 +17,10 @@
     <string name="error_loading_data">Error loading data</string>
     <string name="error_no_data">No data</string>
     <string name="error_pull_to_refresh">No internet connection</string>
+    <string name="subscribe">Severe Weather Alerts</string>
+    <string name="dangerous_weather_title">Warning! Dangerous weather</string>
+    <string name="dangerous_weather_message">In the city %1$s: %2$s</string>
+    <string name="low_temperature_warning">Low temperature: %1$d°C</string>
     // Temperature Format
     <string name="temperature_format">%d°C</string>
     // Empty list city

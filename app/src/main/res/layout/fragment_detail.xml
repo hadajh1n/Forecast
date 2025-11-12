@@ -80,6 +80,19 @@
                         android:id="@+id/rvWeather"
                         android:layout_width="match_parent"
                         android:layout_height="400dp" />
+
+                    <Switch
+                        android:id="@+id/switchDangerousWeather"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:layout_marginTop="5dp"
+                        android:checked="false"
+                        android:text="@string/subscribe"
+                        android:textColor="@color/black"
+                        android:thumbTint="@color/switch_thumb_color"
+                        android:trackTint="@color/black"
+                        app:useMaterialThemeColors="true"/>
                 </LinearLayout>
 
             </LinearLayout>

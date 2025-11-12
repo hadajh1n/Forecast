@@ -1,5 +1,6 @@
 package com.example.forecast.ui.fragments
 
+import android.content.Context
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
@@ -14,10 +15,14 @@ import androidx.navigation.fragment.navArgs
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.example.forecast.R
+import com.example.forecast.core.utils.NotificationHelper
+import com.example.forecast.core.utils.PreferencesHelper
 import com.example.forecast.databinding.FragmentDetailBinding
+import com.example.forecast.network.retrofit.RetrofitClient
 import com.example.forecast.ui.viewModel.DetailUIState
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.launch
+import kotlin.math.round
 
 class DetailFragment : Fragment() {
 
@@ -29,6 +34,13 @@ class DetailFragment : Fragment() {
     private val detailAdapter = DetailAdapter()
     private val args: DetailFragmentArgs by navArgs()
     private val cityName: String by lazy { args.cityName }
+    private lateinit var notificationHelper: NotificationHelper
+
+    private val DANGEROUS_WEATHER_KEYWORDS = listOf(
+        "thunderstorm", "hurricane", "tornado", "hail", "freezing", "heavy", "violent", "extreme",
+        "гроза", "ураган", "торнадо", "град", "ледяной", "сильный", "экстремальная"
+    )
+    private val MIN_SAFE_TEMPERATURE = -20f
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -43,12 +55,15 @@ class DetailFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        notificationHelper = NotificationHelper(requireContext())
+
         setupRecyclerView()
         setupSwipeRefresh()
         observeMessageEvents()
         setupCityName()
         observeViewModel()
         setupRetryButton()
+        setupDangerousWeatherSwitch()
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.loadCityDetail(cityName, requireContext())
@@ -76,6 +91,65 @@ class DetailFragment : Fragment() {
     private fun setupSwipeRefresh() = with(binding) {
         swipeRefreshLayout.setOnRefreshListener {
             viewModel.refreshDetailsSwipe(cityName, requireContext())
+        }
+    }
+
+    private fun setupDangerousWeatherSwitch() {
+        loadDangerousWeatherSwitchState()
+        handleDangerousWeatherSwitchChange()
+    }
+
+    private fun loadDangerousWeatherSwitchState() {
+        binding.switchDangerousWeather.isChecked =
+            PreferencesHelper.isDangerousWeatherEnabled(requireContext(), cityName)
+    }
+
+    private fun handleDangerousWeatherSwitchChange() {
+        binding.switchDangerousWeather.setOnCheckedChangeListener { _, isChecked ->
+            PreferencesHelper.saveDangerousWeatherEnabled(requireContext(), cityName, isChecked)
+
+            if (isChecked) {
+                viewLifecycleOwner.lifecycleScope.launch {
+                    val dangerousEvents = getDangerousWeather(cityName, requireContext())
+
+                    if (dangerousEvents.isNotEmpty()) {
+                        val title = requireContext().getString(R.string.dangerous_weather_title)
+                        val message = requireContext().getString(
+                            R.string.dangerous_weather_message,
+                            cityName,
+                            dangerousEvents.joinToString(", ")
+                        )
+
+                        notificationHelper.sendNotification(title, message)
+                    }
+                }
+            }
+        }
+    }
+
+    private suspend fun getDangerousWeather(city: String, context: Context): List<String> {
+        return try {
+            val response = RetrofitClient.weatherApi.getCurrentWeather(city)
+
+            val dangerousByWeather = response.weather.filter { weather ->
+                val mainLower = weather.main.lowercase()
+                val descLower = weather.description.lowercase()
+                DANGEROUS_WEATHER_KEYWORDS.any { it in mainLower || it in descLower }
+            }.map { it.description.ifEmpty { it.main } }
+
+            val roundedTemp = round(response.main.temp).toInt()
+
+            val dangerousByTemp = if (roundedTemp <= MIN_SAFE_TEMPERATURE) {
+                listOf(context.getString(R.string.low_temperature_warning, roundedTemp))
+            } else {
+                emptyList()
+            }
+
+            dangerousByWeather + dangerousByTemp
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
         }
     }
 

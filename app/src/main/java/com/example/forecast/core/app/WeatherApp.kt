@@ -1,6 +1,9 @@
 package com.example.forecast.core.app
 
 import android.app.Application
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.os.Build
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
@@ -17,6 +20,7 @@ class WeatherApp : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this@WeatherApp
+
         setupBackgroundWeatherUpdates()
     }
 

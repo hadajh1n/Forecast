@@ -19,6 +19,10 @@
     <string name="error_loading_data">Ошибка загрузки данных</string>
     <string name="error_no_data">Нет данных</string>
     <string name="error_pull_to_refresh">Нет подключения к Интернету</string>
+    <string name="subscribe">Уведомления об опасных погодных условиях</string>
+    <string name="dangerous_weather_title">Внимание! Опасная погода</string>
+    <string name="dangerous_weather_message">В городе %1$s: %2$s</string>
+    <string name="low_temperature_warning">Низкая температура: %1$d°C</string>
     // Формат температуры
     <string name="temperature_format">%d°C</string>
     // Пустой список городов
