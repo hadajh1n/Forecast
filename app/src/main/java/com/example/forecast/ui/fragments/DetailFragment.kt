@@ -113,7 +113,7 @@ class DetailFragment : Fragment() {
                             dangerousEvents.joinToString(", ")
                         )
 
-                        notificationHelper.sendNotification(title, message)
+                        notificationHelper.sendNotification(title, message, cityName)
                     }
                 }
             }
