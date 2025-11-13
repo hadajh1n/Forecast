@@ -35,9 +35,9 @@ class NotificationHelper(private val context: Context) {
     fun sendNotification(
         title: String,
         message: String,
-        cityName: String,
-        notificationId: Int = 1
+        cityName: String
     ) {
+        val notificationId = cityName.hashCode()
         val intent = NavDeepLinkBuilder(context)
             .setGraph(R.navigation.nav_graph)
             .setDestination(R.id.detailFragment)

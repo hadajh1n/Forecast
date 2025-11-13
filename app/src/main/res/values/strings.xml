@@ -26,7 +26,7 @@
     <string name="unknown_event">Неизвестное событие</string>
     <string name="heat_warning">Аномальная жара: %1$d°C</string>
     <string name="strong_wind_warning">Сильный ветер: %1$d м/с</string>
-    <string name="storm_warning">Штормовое предупреждение: %1$s</string>
+    <string name="natural_phenomenon">Стихийное явление: %1$s</string>
 
     // Формат температуры
     <string name="temperature_format">%d°C</string>

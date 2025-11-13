@@ -24,7 +24,7 @@
     <string name="unknown_event">Unknown event</string>
     <string name="heat_warning">Extreme heat: %1$d°C</string>
     <string name="strong_wind_warning">Strong wind: %1$d m/s</string>
-    <string name="storm_warning">Storm warning: %1$s</string>
+    <string name="natural_phenomenon">Natural phenomenon: %1$s</string>
 
     // Temperature Format
     <string name="temperature_format">%d°C</string>

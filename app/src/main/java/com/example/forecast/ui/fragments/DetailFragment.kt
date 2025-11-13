@@ -100,55 +100,6 @@ class DetailFragment : Fragment() {
     private fun handleDangerousWeatherSwitchChange() {
         binding.switchDangerousWeather.setOnCheckedChangeListener { _, isChecked ->
             PreferencesHelper.saveDangerousWeatherEnabled(requireContext(), cityName, isChecked)
-
-            if (isChecked) {
-                viewLifecycleOwner.lifecycleScope.launch {
-                    val dangerousEvents = getDangerousWeather(cityName, requireContext())
-
-                    if (dangerousEvents.isNotEmpty()) {
-                        val title = requireContext().getString(R.string.dangerous_weather_title)
-                        val message = requireContext().getString(
-                            R.string.dangerous_weather_message,
-                            cityName,
-                            dangerousEvents.joinToString(", ")
-                        )
-
-                        notificationHelper.sendNotification(title, message, cityName)
-                    }
-                }
-            }
-        }
-    }
-
-    private suspend fun getDangerousWeather(city: String, context: Context): List<String> {
-        return try {
-            val response = RetrofitClient.weatherApi.getCurrentWeather(city)
-
-            val dangerousEvents = mutableListOf<String>()
-            val temp = response.main.temp
-            val windSpeed = response.wind?.speed ?: 0f
-            val description = response.weather.firstOrNull()?.description?.lowercase() ?: ""
-
-            if (temp <= -20) {
-                dangerousEvents += context.getString(R.string.low_temperature_warning, temp.toInt())
-            }
-
-            if (temp >= 35) {
-                dangerousEvents += context.getString(R.string.heat_warning, temp.toInt())
-            }
-
-            if (windSpeed >= 15) {
-                dangerousEvents += context.getString(R.string.strong_wind_warning, windSpeed.toInt())
-            }
-
-            if (listOf("гроза", "ураган", "ливень", "снегопад").any { it in description }) {
-                dangerousEvents += context.getString(R.string.storm_warning, description)
-            }
-
-            dangerousEvents
-        } catch (e: Exception) {
-            e.printStackTrace()
-            emptyList()
         }
     }
 
