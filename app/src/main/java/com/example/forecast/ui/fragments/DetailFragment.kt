@@ -22,7 +22,6 @@ import com.example.forecast.network.retrofit.RetrofitClient
 import com.example.forecast.ui.viewModel.DetailUIState
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.launch
-import kotlin.math.round
 
 class DetailFragment : Fragment() {
 
@@ -35,12 +34,6 @@ class DetailFragment : Fragment() {
     private val args: DetailFragmentArgs by navArgs()
     private val cityName: String by lazy { args.cityName }
     private lateinit var notificationHelper: NotificationHelper
-
-    private val DANGEROUS_WEATHER_KEYWORDS = listOf(
-        "thunderstorm", "hurricane", "tornado", "hail", "freezing", "heavy", "violent", "extreme",
-        "гроза", "ураган", "торнадо", "град", "ледяной", "сильный", "экстремальная"
-    )
-    private val MIN_SAFE_TEMPERATURE = -20f
 
     override fun onCreateView(
         inflater: LayoutInflater,
