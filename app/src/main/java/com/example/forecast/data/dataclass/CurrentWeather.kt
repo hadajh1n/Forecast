@@ -1,6 +1,7 @@
 package com.example.forecast.data.dataclass
 
 data class CurrentWeather(
+    val wind: Wind,
     val name: String,
     val main: Main,
     val weather: List<Weather>
@@ -11,7 +12,11 @@ data class Main(
 )
 
 data class Weather(
-    val main: String = "",
-    val description: String = "",
-    val icon: String
+    val icon: String,
+    val description: String
+)
+
+data class Wind(
+    val speed: Float,
+    val deg: Int
 )

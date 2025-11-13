@@ -10,6 +10,7 @@ import com.example.forecast.data.dataclass.ForecastMain
 import com.example.forecast.data.dataclass.ForecastWeather
 import com.example.forecast.data.dataclass.Main
 import com.example.forecast.data.dataclass.Weather
+import com.example.forecast.data.dataclass.Wind
 import com.example.forecast.data.room.AppDatabase
 import com.example.forecast.data.room.CityEntity
 import com.example.forecast.data.room.CurrentWeatherEntity
@@ -82,13 +83,15 @@ object WeatherRepository {
 
         val current = currentEntity?.let {
             CurrentWeather(
+                wind = Wind(speed = 0f, deg = 0),
                 name = cityName,
                 main = Main(
                     temp = it.temp,
                 ),
                 weather = listOf(
                     Weather(
-                        icon = it.icon
+                        icon = it.icon,
+                        description = ""
                     )
                 )
             )
@@ -106,7 +109,8 @@ object WeatherRepository {
                         ),
                         weather = listOf(
                             Weather(
-                                icon = entity.icon
+                                icon = entity.icon,
+                                description = ""
                             )
                         )
                     )

@@ -21,6 +21,11 @@
     <string name="dangerous_weather_title">Warning! Dangerous weather</string>
     <string name="dangerous_weather_message">In the city %1$s: %2$s</string>
     <string name="low_temperature_warning">Low temperature: %1$d°C</string>
+    <string name="unknown_event">Unknown event</string>
+    <string name="heat_warning">Extreme heat: %1$d°C</string>
+    <string name="strong_wind_warning">Strong wind: %1$d m/s</string>
+    <string name="storm_warning">Storm warning: %1$s</string>
+
     // Temperature Format
     <string name="temperature_format">%d°C</string>
     // Empty list city

@@ -131,22 +131,28 @@ class DetailFragment : Fragment() {
         return try {
             val response = RetrofitClient.weatherApi.getCurrentWeather(city)
 
-            val dangerousByWeather = response.weather.filter { weather ->
-                val mainLower = weather.main.lowercase()
-                val descLower = weather.description.lowercase()
-                DANGEROUS_WEATHER_KEYWORDS.any { it in mainLower || it in descLower }
-            }.map { it.description.ifEmpty { it.main } }
+            val dangerousEvents = mutableListOf<String>()
+            val temp = response.main.temp
+            val windSpeed = response.wind?.speed ?: 0f
+            val description = response.weather.firstOrNull()?.description?.lowercase() ?: ""
 
-            val roundedTemp = round(response.main.temp).toInt()
-
-            val dangerousByTemp = if (roundedTemp <= MIN_SAFE_TEMPERATURE) {
-                listOf(context.getString(R.string.low_temperature_warning, roundedTemp))
-            } else {
-                emptyList()
+            if (temp <= -20) {
+                dangerousEvents += context.getString(R.string.low_temperature_warning, temp.toInt())
             }
 
-            dangerousByWeather + dangerousByTemp
+            if (temp >= 35) {
+                dangerousEvents += context.getString(R.string.heat_warning, temp.toInt())
+            }
 
+            if (windSpeed >= 15) {
+                dangerousEvents += context.getString(R.string.strong_wind_warning, windSpeed.toInt())
+            }
+
+            if (listOf("гроза", "ураган", "ливень", "снегопад").any { it in description }) {
+                dangerousEvents += context.getString(R.string.storm_warning, description)
+            }
+
+            dangerousEvents
         } catch (e: Exception) {
             e.printStackTrace()
             emptyList()

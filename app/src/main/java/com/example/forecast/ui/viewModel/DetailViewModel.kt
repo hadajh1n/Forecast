@@ -222,7 +222,7 @@ class DetailViewModel : ViewModel() {
                     ForecastItem(
                         dt = dt,
                         main = ForecastMain(temp = 0f, tempMax = maxTemp, tempMin = minTemp),
-                        weather = listOf(Weather(icon = icon))
+                        weather = listOf(Weather(icon = icon, description = ""))
                     )
                 )
             }
