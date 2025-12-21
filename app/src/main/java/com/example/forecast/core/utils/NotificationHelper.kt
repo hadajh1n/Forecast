@@ -10,9 +10,10 @@ import android.os.Bundle
 import androidx.navigation.NavDeepLinkBuilder
 import com.example.forecast.R
 
-class NotificationHelper(private val context: Context) {
+class NotificationHelper(context: Context) {
 
-    private val CHANNEL_ID = "my_channel_id"
+    private val appContext = context.applicationContext
+    private val CHANNEL_ID = "dangerous_weather_channel"
 
     init {
         createNotificationChannel()
@@ -20,15 +21,17 @@ class NotificationHelper(private val context: Context) {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = "My Channel"
-            val descriptionText = "Описание канала"
-            val importance = NotificationManager.IMPORTANCE_DEFAULT
-            val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
-                description = descriptionText
+            val channel = NotificationChannel(
+                CHANNEL_ID,
+                "Опасная погода",
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                description = "Уведомления об опасных погодных условиях"
             }
-            val notificationManager: NotificationManager =
-                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
+
+            val manager = appContext.getSystemService(Context.NOTIFICATION_SERVICE)
+                    as NotificationManager
+            manager.createNotificationChannel(channel)
         }
     }
 
@@ -38,13 +41,13 @@ class NotificationHelper(private val context: Context) {
         cityName: String
     ) {
         val notificationId = cityName.hashCode()
-        val intent = NavDeepLinkBuilder(context)
+        val intent = NavDeepLinkBuilder(appContext)
             .setGraph(R.navigation.nav_graph)
             .setDestination(R.id.detailFragment)
             .setArguments(Bundle().apply { putString("cityName", cityName) })
             .createPendingIntent()
 
-        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
+        val builder = NotificationCompat.Builder(appContext, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle(title)
             .setContentText(message)
@@ -52,7 +55,7 @@ class NotificationHelper(private val context: Context) {
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
 
-        with(NotificationManagerCompat.from(context)) {
+        with(NotificationManagerCompat.from(appContext)) {
             notify(notificationId, builder.build())
         }
     }

@@ -8,7 +8,7 @@ import com.example.forecast.data.repository.WeatherRepository
 import com.example.forecast.network.retrofit.RetrofitClient
 
 class WeatherUpdateWorker(
-    private val context: Context,
+    context: Context,
     workerParams: WorkerParameters
 ) : CoroutineWorker(context, workerParams) {
 

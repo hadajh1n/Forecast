@@ -74,12 +74,12 @@ class CityFragment : Fragment() {
         setupRetryButton()
         restoreDialogState(savedInstanceState)
 
-        viewModel.loadCities(requireContext())
+        viewModel.initData(requireContext())
     }
 
     override fun onStart() {
         super.onStart()
-        viewModel.startRefresh(requireActivity().applicationContext)
+        viewModel.startRefresh()
     }
 
     override fun onStop() {
@@ -198,10 +198,9 @@ class CityFragment : Fragment() {
         }
     }
 
-
     private fun setupRetryButton() {
         binding.btnRetry.setOnClickListener {
-            viewModel.loadCities(requireContext())
+            viewModel.onRetryButton(requireContext())
         }
     }
 
@@ -283,7 +282,7 @@ class CityFragment : Fragment() {
         dialogInput?.setOnItemClickListener { _, _, position, _ ->
             val cityName = dialogInput?.adapter?.getItem(position).toString().trim()
             if (cityName.isNotEmpty()) {
-                viewModel.addCity(cityName, requireContext())
+                viewModel.addNewCity(cityName, requireContext())
             }
 
             dialogInputText = null

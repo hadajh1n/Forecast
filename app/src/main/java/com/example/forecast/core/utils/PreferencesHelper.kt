@@ -11,7 +11,11 @@ object PreferencesHelper {
         return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
     }
 
-    fun saveDangerousWeatherEnabled(context: Context, cityName: String, isEnabled: Boolean) {
+    fun saveDangerousWeatherEnabled(
+        context: Context,
+        cityName: String,
+        isEnabled: Boolean
+    ) {
         getPrefs(context).edit()
             .putBoolean("dangerous_weather_switch_$cityName", isEnabled)
             .apply()

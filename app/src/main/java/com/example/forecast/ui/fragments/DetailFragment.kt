@@ -1,6 +1,5 @@
 package com.example.forecast.ui.fragments
 
-import android.content.Context
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
@@ -18,7 +17,6 @@ import com.example.forecast.R
 import com.example.forecast.core.utils.NotificationHelper
 import com.example.forecast.core.utils.PreferencesHelper
 import com.example.forecast.databinding.FragmentDetailBinding
-import com.example.forecast.network.retrofit.RetrofitClient
 import com.example.forecast.ui.viewModel.DetailUIState
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.launch

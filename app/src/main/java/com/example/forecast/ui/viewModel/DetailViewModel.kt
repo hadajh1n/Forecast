@@ -4,7 +4,6 @@ import android.content.Context
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.forecast.core.utils.Constants
@@ -25,7 +24,6 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
-import kotlin.collections.get
 import kotlin.math.round
 
 sealed class DetailUIState {
@@ -57,24 +55,6 @@ class DetailViewModel : ViewModel() {
     private var refreshJob: Job? = null
     private var cityName: String? = null
     private var context: Context? = null
-    private var isObserverAdded = false
-
-    private val observer =
-        Observer<Map<String, WeatherRepository.CachedWeatherData>> { cachedDetails ->
-            if (cityName == null || context == null) return@Observer
-
-            val cachedData = cachedDetails[cityName]
-            if (cachedData != null && cachedData.current != null && cachedData.forecast != null) {
-                _detailState.value = mapToUI(cachedData, context!!)
-            }
-    }
-
-    init {
-        if (!isObserverAdded) {
-            WeatherRepository.cachedWeatherLiveData.observeForever(observer)
-            isObserverAdded = true
-        }
-    }
 
     suspend fun loadCityDetail(cityName: String, context: Context, showLoading: Boolean = true) {
         this.cityName = cityName
@@ -92,28 +72,34 @@ class DetailViewModel : ViewModel() {
             return
         }
 
-        viewModelScope.launch {
-            try {
-                if (!isCurrentValid) {
-                    val current = RetrofitClient.weatherApi.getCurrentWeather(cityName)
-                    WeatherRepository.setCachedCurrent(
-                        cityName,
-                        current,
-                        System.currentTimeMillis()
-                    )
-                }
-                if (!isForecastValid) {
-                    val forecast = RetrofitClient.weatherApi.getForecast(cityName)
-                    WeatherRepository.setCachedForecast(
-                        cityName,
-                        forecast,
-                        System.currentTimeMillis()
-                    )
-                }
-            } catch (e: Exception) {
+        try {
+            if (!isCurrentValid) {
+                val current = RetrofitClient.weatherApi.getCurrentWeather(cityName)
+                WeatherRepository.setCachedCurrent(
+                    cityName,
+                    current,
+                    System.currentTimeMillis()
+                )
+            }
+            if (!isForecastValid) {
+                val forecast = RetrofitClient.weatherApi.getForecast(cityName)
+                WeatherRepository.setCachedForecast(
+                    cityName,
+                    forecast,
+                    System.currentTimeMillis()
+                )
+            }
+
+            val updatedData = WeatherRepository.getCachedDetails(cityName)
+            if (updatedData?.current != null && updatedData.forecast != null) {
+                _detailState.value = mapToUI(updatedData, context)
+            } else {
                 _detailState.value =
                     DetailUIState.Error(context.getString(R.string.error_fetch_current_weather))
             }
+        } catch (e: Exception) {
+            _detailState.value =
+                DetailUIState.Error(context.getString(R.string.error_fetch_current_weather))
         }
     }
 
@@ -275,6 +261,11 @@ class DetailViewModel : ViewModel() {
                     Log.e(TAG, "Failed to refresh", e)
                 }
 
+                val updatedData = WeatherRepository.getCachedDetails(cityName)
+                if (updatedData?.current != null && updatedData.forecast != null) {
+                    _detailState.value = mapToUI(updatedData, context)
+                }
+
                 val remainingCurrent = Constants.CacheLifetime.CACHE_VALIDITY_DURATION -
                         (System.currentTimeMillis() -
                                 (WeatherRepository.getTimestampCurrent(cityName) ?: 0L))
@@ -294,8 +285,6 @@ class DetailViewModel : ViewModel() {
 
     override fun onCleared() {
         super.onCleared()
-        WeatherRepository.cachedWeatherLiveData.removeObserver(observer)
         stopRefresh()
-        isObserverAdded = false
     }
 }

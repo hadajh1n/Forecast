@@ -1,7 +1,5 @@
 package com.example.forecast.data.repository
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.room.Room
 import com.example.forecast.core.app.WeatherApp
 import com.example.forecast.data.dataclass.CurrentWeather
@@ -29,15 +27,10 @@ object WeatherRepository {
         val orderIndex: Int = 0
     )
 
-    private var cachedCities: List<CityEntity>? = null
     private val cacheMutex = Mutex()
-    private val cachedDetails = ConcurrentHashMap<String, CachedWeatherData>()
 
-    private val _cachedWeatherLiveData =
-        MutableLiveData<Map<String, CachedWeatherData>>(cachedDetails)
-    val cachedWeatherLiveData:
-            LiveData<Map<String, CachedWeatherData>>
-        get() = _cachedWeatherLiveData
+    private var cachedCities: List<CityEntity>? = null
+    private val cachedDetails = ConcurrentHashMap<String, CachedWeatherData>()
 
     private val db by lazy {
         Room.databaseBuilder(
@@ -62,7 +55,6 @@ object WeatherRepository {
             }
         }
 
-        _cachedWeatherLiveData.postValue(cachedDetails)
         return cachedCities?.map { it.cityName } ?: emptyList()
     }
 
@@ -130,7 +122,6 @@ object WeatherRepository {
                 timestampForecast = timestampForecast,
                 orderIndex = cityEntity?.orderIndex ?: 0
             )
-            _cachedWeatherLiveData.postValue(cachedDetails)
         }
     }
 
@@ -153,7 +144,6 @@ object WeatherRepository {
             orderIndex = orderIndex
         )
         cachedDetails[cityName] = newData
-        _cachedWeatherLiveData.postValue(cachedDetails)
 
         val cityEntity = CityEntity(
             cityName = cityName,
@@ -192,7 +182,6 @@ object WeatherRepository {
             orderIndex = orderIndex
         )
         cachedDetails[cityName] = newData
-        _cachedWeatherLiveData.postValue(cachedDetails)
 
         val cityEntity = CityEntity(
             cityName = cityName,
@@ -221,7 +210,6 @@ object WeatherRepository {
 
     suspend fun removeCity(cityName: String) = cacheMutex.withLock {
         cachedDetails.remove(cityName)
-        _cachedWeatherLiveData.postValue(cachedDetails)
 
         db.cityDao().delete(cityName)
         cachedCities = db.cityDao().getActiveCities()
