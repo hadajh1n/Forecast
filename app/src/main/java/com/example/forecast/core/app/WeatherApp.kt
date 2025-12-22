@@ -2,7 +2,6 @@ package com.example.forecast.core.app
 
 import android.app.Application
 import androidx.work.ExistingPeriodicWorkPolicy
-import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.example.forecast.core.utils.Constants
@@ -39,7 +38,7 @@ class WeatherApp : Application() {
     private fun setupDangerousWeatherWorker() {
         val workRequest = PeriodicWorkRequestBuilder<DangerousWeatherWorker>(
             24, TimeUnit.HOURS
-        ).setInitialDelay(0, TimeUnit.MILLISECONDS).build()
+        ).build()
 
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             "DangerousWeatherCheck",

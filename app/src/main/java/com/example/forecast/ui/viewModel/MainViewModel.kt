@@ -76,8 +76,6 @@ class MainViewModel : ViewModel() {
                 if (cached?.current != null && isCachedValidCurrent(cached.timestampCurrent)) {
                     cities.add(cached.current)
                 } else {
-                    delay(7_000)
-
                     Log.e("MainViewModel", "Запрос API для получения текущей погоды")
 
                     val weather = fetchCurrentWeatherForCity(name)
@@ -227,6 +225,7 @@ class MainViewModel : ViewModel() {
                 }
                 _uiState.value = MainUIState.Success(cities)
             } catch (e: Exception) {
+                Log.e("MainViewModel", "Запрос API для текущей погоды провален - ошибка")
                 _uiState.value = MainUIState.Error(context.getString(R.string.error_load_cities))
             } finally {
                 startRefresh()
