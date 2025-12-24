@@ -69,7 +69,7 @@ class CityFragment : Fragment() {
         observeViewModelState()
         observeMessageError()
         setupItemTouchHelper()
-        setupAddCityTextView()
+        setupAddCityCardView()
         setupAddCityButton()
         setupRetryButton()
         restoreDialogState(savedInstanceState)
@@ -79,14 +79,17 @@ class CityFragment : Fragment() {
 
     override fun onStart() {
         super.onStart()
-        viewModel.startRefresh()
+        viewModel.onRefreshBackground()
     }
 
     override fun onStop() {
         super.onStop()
-        if (!requireActivity().isChangingConfigurations) {
-            viewModel.stopRefresh()
-        }
+        viewModel.onStopFragment(requireActivity().isChangingConfigurations)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        viewModel.onResumeFragment(requireContext())
     }
 
     override fun onDestroyView() {
@@ -100,7 +103,7 @@ class CityFragment : Fragment() {
 
     private fun setupSwipeRefresh() = with(binding) {
         swipeRefreshLayout.setOnRefreshListener {
-            viewModel.refreshCitiesSwipe(requireContext())
+            viewModel.onSwipeRefresh(requireContext())
         }
     }
 
@@ -129,7 +132,7 @@ class CityFragment : Fragment() {
         progressBar.visibility = View.VISIBLE
         cvCity.visibility = View.GONE
         errorContainer.visibility = View.GONE
-        tvAddFirstCity.visibility = View.GONE
+        cvAddFirstCity.visibility = View.GONE
         btnAddCity.visibility = View.GONE
         swipeRefreshLayout.isEnabled = false
     }
@@ -139,7 +142,7 @@ class CityFragment : Fragment() {
         progressBar.visibility = View.GONE
         errorContainer.visibility = View.GONE
         cvCity.visibility = if (state.cities.isEmpty()) View.GONE else View.VISIBLE
-        tvAddFirstCity.visibility = if (state.cities.isEmpty()) View.VISIBLE else View.GONE
+        cvAddFirstCity.visibility = if (state.cities.isEmpty()) View.VISIBLE else View.GONE
         btnAddCity.visibility = View.VISIBLE
         cityAdapter.updateCities(state.cities)
         swipeRefreshLayout.isEnabled = true
@@ -151,7 +154,7 @@ class CityFragment : Fragment() {
         cvCity.visibility = View.GONE
         btnAddCity.visibility = View.GONE
         errorContainer.visibility = View.VISIBLE
-        tvAddFirstCity.visibility = View.GONE
+        cvAddFirstCity.visibility = View.GONE
         tvErrorLoadCities.text = state.message
         swipeRefreshLayout.isEnabled = false
     }
@@ -186,8 +189,8 @@ class CityFragment : Fragment() {
         ItemTouchHelper(itemTouchHelperCallback).attachToRecyclerView(binding.rvCity)
     }
 
-    private fun setupAddCityTextView() {
-        binding.tvAddFirstCity.setOnClickListener {
+    private fun setupAddCityCardView() {
+        binding.cvAddFirstCity.setOnClickListener {
             showAddCityDialog()
         }
     }
@@ -282,7 +285,7 @@ class CityFragment : Fragment() {
         dialogInput?.setOnItemClickListener { _, _, position, _ ->
             val cityName = dialogInput?.adapter?.getItem(position).toString().trim()
             if (cityName.isNotEmpty()) {
-                viewModel.addNewCity(cityName, requireContext())
+                viewModel.onAddNewCity(cityName, requireContext())
             }
 
             dialogInputText = null

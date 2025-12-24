@@ -13,7 +13,6 @@ import com.example.forecast.data.dataclass.CurrentWeather
 import com.example.forecast.network.retrofit.RetrofitClient
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 sealed class MainUIState {
@@ -35,50 +34,66 @@ class MainViewModel : ViewModel() {
     private val _errorMessage = MutableLiveData<String>()
     val errorMessage : LiveData<String> get() = _errorMessage
 
-    private var refreshJob: Job? = null
-
-    private var currentLoadCitiesJob: Job? = null
-    private var addCitiesJob: Job? = null
-
     private var isLoadedStartData = false
+    private var isOfflineMode = false
+
+    private var loadCitiesJob: Job? = null
+    private var addCitiesJob: Job? = null
+    private var refreshSwipeJob: Job? = null
+    private var refreshBackgroundJob: Job? = null
+    private var wasLoadingWhenPaused = false
+    private var restartRequiredLoadCities = false
+    private var restartRequiredRefreshSwipe = false
+
+    private fun isCachedValidCurrent(timestamp: Long): Boolean {
+        return (System.currentTimeMillis() - timestamp) <
+                Constants.CacheLifetime.CACHE_VALIDITY_DURATION
+    }
 
     fun initData(context: Context) {
         if (isLoadedStartData) return
 
         isLoadedStartData = true
-        Log.e("MainViewModel", "ПЕРВЫЙ ВХОД - loadCities")
         loadCities(context)
     }
 
     private fun loadCities(context: Context) {
-        if (currentLoadCitiesJob?.isActive == true) {
+        if (loadCitiesJob?.isActive == true) {
             Log.e("MainViewModel", "Загрузка городов уже началась...")
             return
         }
 
-        currentLoadCitiesJob = viewModelScope.launch {
+        loadCitiesJob = viewModelScope.launch {
             Log.e("MainViewModel", "Запуск корутины loadCitiesData")
+            _uiState.postValue(MainUIState.Loading)
             loadCitiesData(context)
             Log.e("MainViewModel", "Корутина loadCitiesData завершена")
         }
     }
 
     private suspend fun loadCitiesData(context: Context) {
-        _uiState.postValue(MainUIState.Loading)
-
-        val cityNames = WeatherRepository.getCities()
+        val cachedCities = WeatherRepository.getMemoryCities()
         val cities = mutableListOf<CurrentWeather>()
 
+        if (cachedCities.isEmpty()) {
+            Log.e("MainViewModel", "loadCitiesData - пустой список")
+            _uiState.postValue(MainUIState.Success(emptyList()))
+            return
+        }
+
         try {
-            for (name in cityNames) {
+            delay(7_000)
+
+            for (name in cachedCities) {
                 val cached = WeatherRepository.getCachedDetails(name)
 
                 if (cached?.current != null && isCachedValidCurrent(cached.timestampCurrent)) {
+                    Log.e("MainViewModel", "Кэш уже есть, выводим города")
                     cities.add(cached.current)
                 } else {
                     Log.e("MainViewModel", "Запрос API для получения текущей погоды")
 
-                    val weather = fetchCurrentWeatherForCity(name)
+                    val weather = RetrofitClient.weatherApi.getCurrentWeather(name)
                     WeatherRepository.setCachedCurrent(
                         name,
                         weather,
@@ -88,20 +103,21 @@ class MainViewModel : ViewModel() {
                 }
             }
 
-            _uiState.value = MainUIState.Success(cities)
+            _uiState.postValue(MainUIState.Success(cities))
         } catch (e: Exception) {
             Log.e("MainViewModel", "Запрос API для текущей погоды провален - ошибка")
-            _uiState.value = MainUIState.Error(context.getString(R.string.error_load_cities))
+
+            if (cachedCities.isNotEmpty()) {
+                _uiState.postValue(MainUIState.Success(cities))
+                return
+            }
+
+            _uiState.postValue(MainUIState.Error(context.getString(R.string.error_load_cities)))
+            isOfflineMode = true
         }
     }
 
-    private suspend fun fetchCurrentWeatherForCity(
-        cityName: String
-    ): CurrentWeather {
-        return RetrofitClient.weatherApi.getCurrentWeather(cityName)
-    }
-
-    fun addNewCity(cityName: String, context: Context) {
+    private fun addNewCity(cityName: String, context: Context) {
         if (addCitiesJob?.isActive == true) {
             Log.e("MainViewModel", "Добавление города уже началось")
             return
@@ -115,15 +131,15 @@ class MainViewModel : ViewModel() {
     }
 
     private suspend fun addCity(cityName: String, context: Context) {
-        val currentCities = WeatherRepository.getCities()
+        val currentCities = WeatherRepository.getMemoryCities()
 
         try {
+            delay(7_000)
+
             if (currentCities.any { it.equals(cityName, ignoreCase = true) }) {
-                _errorMessage.value = context.getString(R.string.error_city_already_added)
+                _errorMessage.postValue(context.getString(R.string.error_city_already_added))
                 return
             }
-
-            delay(7_000)
 
             Log.e("MainViewModel", "Запрос API для нового города")
             val weather = RetrofitClient.weatherApi.getCurrentWeather(cityName)
@@ -133,117 +149,176 @@ class MainViewModel : ViewModel() {
                 System.currentTimeMillis()
             )
 
-            val cities = WeatherRepository.getCities()
+            val cities = WeatherRepository.getMemoryCities()
                 .mapNotNull { WeatherRepository.getCachedDetails(it)?.current }
 
             _uiState.postValue(MainUIState.Success(cities))
         } catch (e: Exception) {
             Log.e("MainViewModel", "Запрос API для нового города провален - ошибка")
-            _uiState.value =
-                MainUIState.Error(context.getString(R.string.error_load_cities))
+            _uiState.postValue(MainUIState.Error(context.getString(R.string.error_load_cities)))
         }
-    }
-
-    private fun isCachedValidCurrent(timestamp: Long): Boolean {
-        return (System.currentTimeMillis() - timestamp) <
-                Constants.CacheLifetime.CACHE_VALIDITY_DURATION
     }
 
     suspend fun removeCity(cityName: String, context: Context) {
         WeatherRepository.removeCity(cityName)
 
         viewModelScope.launch {
+            Log.e("MainViewModel", "Запуск корутины removeCity")
             loadCitiesData(context)
+            Log.e("MainViewModel", "Корутина removeCity завершена")
         }
     }
 
-    fun startRefresh() {
-        if (refreshJob?.isActive == true) {
-            // Log.e("MainViewModel", "Refresh корутина уже запущена, return")
+    private fun refreshCities(context: Context) {
+        if (refreshSwipeJob?.isActive == true) {
+            Log.e("DetailViewModel", "Refresh уже начался...")
             return
         }
 
-        refreshJob = viewModelScope.launch {
-            while (isActive) {
-                val cityNames = WeatherRepository.getCities()
-                var minDelay = Constants.CacheLifetime.CACHE_VALIDITY_DURATION
-                var dataChanged = false
+        refreshSwipeJob = viewModelScope.launch {
+            Log.e("MainViewModel", "Запуск корутины refreshSwipe")
+            refreshCitiesSwipe(context)
+            Log.e("MainViewModel", "Корутина refreshSwipe завершена")
+        }
+    }
 
-                for (name in cityNames) {
-                    val timestamp = WeatherRepository.getTimestampCurrent(name) ?: 0L
-                    val age = System.currentTimeMillis() - timestamp
-                    if (age >= Constants.CacheLifetime.CACHE_VALIDITY_DURATION) {
-                        try {
-                            val weather = fetchCurrentWeatherForCity(name)
-                            WeatherRepository.setCachedCurrent(
-                                name,
-                                weather,
-                                System.currentTimeMillis()
-                            )
-                            dataChanged = true
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Failed to refresh city: $name", e)
-                        }
+    private suspend fun refreshCitiesSwipe(context: Context) {
+        val cityNames = WeatherRepository.getMemoryCities()
+
+        if (cityNames.isEmpty()) {
+            _uiState.postValue(MainUIState.Success(emptyList()))
+            return
+        }
+
+        try {
+            delay(7_000)
+
+            val cities = mutableListOf<CurrentWeather>()
+
+            for (name in cityNames) {
+                val weather = RetrofitClient.weatherApi.getCurrentWeather(name)
+                WeatherRepository.setCachedCurrent(
+                    name,
+                    weather,
+                    System.currentTimeMillis()
+                )
+                cities.add(weather)
+            }
+            _uiState.postValue(MainUIState.Success(cities))
+        } catch (e: Exception) {
+            Log.e("MainViewModel", "Запрос API для текущей погоды провален - ошибка")
+            _uiState.postValue(MainUIState.Error(context.getString(R.string.error_load_cities)))
+        }
+    }
+
+//    private fun refreshBackground() {
+//        if (refreshBackgroundJob?.isActive == true) return
+//
+//        refreshBackgroundJob = viewModelScope.launch {
+//            Log.e("MainViewModel", "Запуск корутины refreshBackground")
+//            startRefreshBackground()
+//            Log.e("MainViewModel", "Корутина refreshBackground завершена")
+//        }
+//    }
+
+    private suspend fun startRefreshBackground() {
+        while (refreshBackgroundJob?.isActive == true) {
+            val cityNames = WeatherRepository.getMemoryCities()
+            var minDelay = Constants.CacheLifetime.CACHE_VALIDITY_DURATION
+            var dataChanged = false
+
+            for (name in cityNames) {
+                val timestamp = WeatherRepository.getTimestampCurrent(name) ?: 0L
+                val age = System.currentTimeMillis() - timestamp
+
+                if (age >= Constants.CacheLifetime.CACHE_VALIDITY_DURATION) {
+                    try {
+                        val weather = RetrofitClient.weatherApi.getCurrentWeather(name)
+                        WeatherRepository.setCachedCurrent(
+                            name,
+                            weather,
+                            System.currentTimeMillis()
+                        )
+                        dataChanged = true
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to refresh city: $name", e)
                     }
-                    val remaining =
-                        Constants.CacheLifetime.CACHE_VALIDITY_DURATION -
-                                (System.currentTimeMillis() - timestamp)
-                    if (remaining < minDelay) minDelay = remaining.coerceAtLeast(1000L)
                 }
 
-                if (dataChanged) {
-                    val cities =
-                        cityNames.mapNotNull { WeatherRepository.getCachedDetails(it)?.current }
-                    _uiState.value = MainUIState.Success(cities)
-                }
+                val remaining =
+                    Constants.CacheLifetime.CACHE_VALIDITY_DURATION -
+                            (System.currentTimeMillis() - timestamp)
 
-                delay(minDelay)
+                if (remaining < minDelay) minDelay = remaining.coerceAtLeast(1000L)
+            }
+
+            if (dataChanged) {
+                val cities =
+                    cityNames.mapNotNull { WeatherRepository.getCachedDetails(it)?.current }
+                _uiState.postValue(MainUIState.Success(cities))
+            }
+
+            delay(minDelay)
+        }
+    }
+
+    private fun cancelLoadingOnPause() {
+        wasLoadingWhenPaused = true
+
+        if (loadCitiesJob?.isActive == true) {
+            Log.e("MainViewModel", "Отмена корутины loadCitiesData")
+            loadCitiesJob?.cancel()
+            loadCitiesJob = null
+            restartRequiredLoadCities = true
+        }
+
+        if (refreshSwipeJob?.isActive == true) {
+            Log.e("MainViewModel", "Отмена корутины Refresh")
+            refreshSwipeJob?.cancel()
+            refreshSwipeJob = null
+            restartRequiredRefreshSwipe = true
+        }
+    }
+
+    private fun retryInterruptedLoad(context: Context) {
+        if (wasLoadingWhenPaused) {
+
+            if (restartRequiredLoadCities) {
+                Log.e("MainViewModel", "Перезапуск корутины loadCitiesData")
+                loadCities(context)
+                restartRequiredLoadCities = false
+            }
+
+            if (restartRequiredRefreshSwipe) {
+                Log.e("MainViewModel", "Перезапуск корутины Refresh")
+                refreshCities(context)
+                restartRequiredRefreshSwipe = false
             }
         }
     }
 
-    fun refreshCitiesSwipe(context: Context) {
-        viewModelScope.launch {
-            val cityNames = WeatherRepository.getCities()
-            if (cityNames.isEmpty()) {
-                _uiState.value = MainUIState.Success(emptyList())
-                return@launch
-            }
+    fun onStopFragment(isChangingConfigurations: Boolean) {
+        if ((loadCitiesJob?.isActive == true || refreshSwipeJob?.isActive == true) &&
+            !isChangingConfigurations) cancelLoadingOnPause()
+    }
 
-            stopRefresh()
-            try {
-                val cities = mutableListOf<CurrentWeather>()
+    fun onResumeFragment(context: Context) {
+        if (wasLoadingWhenPaused) retryInterruptedLoad(context)
+    }
 
-                for (name in cityNames) {
-                    val weather = fetchCurrentWeatherForCity(name)
-                    WeatherRepository.setCachedCurrent(
-                        name,
-                        weather,
-                        System.currentTimeMillis()
-                    )
-                    cities.add(weather)
-                }
-                _uiState.value = MainUIState.Success(cities)
-            } catch (e: Exception) {
-                Log.e("MainViewModel", "Запрос API для текущей погоды провален - ошибка")
-                _uiState.value = MainUIState.Error(context.getString(R.string.error_load_cities))
-            } finally {
-                startRefresh()
-            }
-        }
+    fun onAddNewCity(cityName: String, context: Context) {
+        addNewCity(cityName, context)
+    }
+
+    fun onSwipeRefresh(context: Context) {
+        refreshCities(context)
+    }
+
+    fun onRefreshBackground() {
+//        refreshBackground()
     }
 
     fun onRetryButton(context: Context) {
         loadCities(context)
-    }
-
-    fun stopRefresh() {
-        refreshJob?.cancel()
-        refreshJob = null
-    }
-
-    override fun onCleared() {
-        super.onCleared()
-        stopRefresh()
     }
 }

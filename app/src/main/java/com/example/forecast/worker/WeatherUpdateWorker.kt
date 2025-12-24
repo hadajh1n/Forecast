@@ -18,7 +18,7 @@ class WeatherUpdateWorker(
 
     override suspend fun doWork(): Result {
         return try {
-            val cities = WeatherRepository.getCities()
+            val cities = WeatherRepository.getMemoryCities()
 
             for (city in cities) {
                 try {

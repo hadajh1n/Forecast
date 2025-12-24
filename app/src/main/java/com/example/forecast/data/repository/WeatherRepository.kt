@@ -29,7 +29,7 @@ object WeatherRepository {
 
     private val cacheMutex = Mutex()
 
-    private var cachedCities: List<CityEntity>? = null
+    private var cachedCities: List<CityEntity> = emptyList()
     private val cachedDetails = ConcurrentHashMap<String, CachedWeatherData>()
 
     private val db by lazy {
@@ -40,8 +40,8 @@ object WeatherRepository {
         ).build()
     }
 
-    suspend fun getCities(): List<String> = cacheMutex.withLock {
-        if (cachedCities == null) {
+    suspend fun getMemoryCities(): List<String> = cacheMutex.withLock {
+        if (cachedCities.isEmpty()) {
             cachedCities = db.cityDao().getActiveCities()
         }
 

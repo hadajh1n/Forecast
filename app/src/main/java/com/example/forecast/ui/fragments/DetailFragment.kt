@@ -56,14 +56,12 @@ class DetailFragment : Fragment() {
         setupRetryButton()
         setupDangerousWeatherSwitch()
 
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.loadCityDetail(cityName, requireContext())
-        }
+        viewModel.initData(cityName, requireContext())
     }
 
     override fun onStart() {
         super.onStart()
-        viewModel.startRefresh(cityName, requireActivity().applicationContext)
+        viewModel.onRefreshBackground(cityName, requireActivity().applicationContext)
     }
 
     override fun onStop() {
@@ -81,7 +79,7 @@ class DetailFragment : Fragment() {
 
     private fun setupSwipeRefresh() = with(binding) {
         swipeRefreshLayout.setOnRefreshListener {
-            viewModel.refreshDetailsSwipe(cityName, requireContext())
+            viewModel.onSwipeRefresh(cityName, requireContext())
         }
     }
 
@@ -139,14 +137,14 @@ class DetailFragment : Fragment() {
     private fun handleLoadingState() = with(binding) {
         progressBar.visibility = View.VISIBLE
         contentContainer.visibility = View.GONE
-        errorContainer.visibility = View.GONE
+        errorCardView.visibility = View.GONE
         swipeRefreshLayout.isEnabled = false
     }
 
     private fun handleSuccessState(state: DetailUIState.Success) = with(binding) {
         swipeRefreshLayout.isRefreshing = false
         progressBar.visibility = View.GONE
-        errorContainer.visibility = View.GONE
+        errorCardView.visibility = View.GONE
         swipeRefreshLayout.isEnabled = true
 
         if (state.forecast.isEmpty()) {
@@ -167,16 +165,14 @@ class DetailFragment : Fragment() {
         swipeRefreshLayout.isRefreshing = false
         progressBar.visibility = View.GONE
         contentContainer.visibility = View.GONE
-        errorContainer.visibility = View.VISIBLE
+        errorCardView.visibility = View.VISIBLE
         tvError.text = state.message
         swipeRefreshLayout.isEnabled = false
     }
 
     private fun setupRetryButton() {
         binding.btnRetry.setOnClickListener {
-            viewLifecycleOwner.lifecycleScope.launch {
-                viewModel.loadCityDetail(cityName, requireContext())
-            }
+            viewModel.onRetryButton(cityName, requireContext())
         }
     }
 }

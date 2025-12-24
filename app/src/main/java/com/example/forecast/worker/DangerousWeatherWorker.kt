@@ -22,7 +22,7 @@ class DangerousWeatherWorker(
     }
 
     override suspend fun doWork(): Result {
-        val cities = WeatherRepository.getCities()
+        val cities = WeatherRepository.getMemoryCities()
         val notificationHelper = NotificationHelper(applicationContext)
 
         for (city in cities) {
