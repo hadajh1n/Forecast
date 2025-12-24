@@ -22,6 +22,13 @@ sealed class MainUIState {
     data class Error(val message: String) : MainUIState()
 }
 
+sealed class CitiesState {
+
+    object Standard: CitiesState()
+    object Loading : CitiesState()
+    object Error : CitiesState()
+}
+
 class MainViewModel : ViewModel() {
 
     companion object {
@@ -30,6 +37,9 @@ class MainViewModel : ViewModel() {
 
     private val _uiState = MutableLiveData<MainUIState>()
     val uiState: LiveData<MainUIState> get() = _uiState
+
+    private val _citiesState = MutableLiveData<CitiesState>()
+    val citiesState: LiveData<CitiesState> = _citiesState
 
     private val _errorMessage = MutableLiveData<String>()
     val errorMessage : LiveData<String> get() = _errorMessage
@@ -123,6 +133,8 @@ class MainViewModel : ViewModel() {
             return
         }
 
+        _citiesState.value = CitiesState.Loading
+
         addCitiesJob = viewModelScope.launch {
             Log.e("MainViewModel", "Запуск корутины addCity")
             addCity(cityName, context)
@@ -138,6 +150,7 @@ class MainViewModel : ViewModel() {
 
             if (currentCities.any { it.equals(cityName, ignoreCase = true) }) {
                 _errorMessage.postValue(context.getString(R.string.error_city_already_added))
+                _citiesState.postValue(CitiesState.Standard)
                 return
             }
 
@@ -153,9 +166,11 @@ class MainViewModel : ViewModel() {
                 .mapNotNull { WeatherRepository.getCachedDetails(it)?.current }
 
             _uiState.postValue(MainUIState.Success(cities))
+            _citiesState.postValue(CitiesState.Standard)
         } catch (e: Exception) {
             Log.e("MainViewModel", "Запрос API для нового города провален - ошибка")
             _uiState.postValue(MainUIState.Error(context.getString(R.string.error_load_cities)))
+            _citiesState.postValue(CitiesState.Error)
         }
     }
 

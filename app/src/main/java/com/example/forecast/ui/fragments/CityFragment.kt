@@ -23,6 +23,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.forecast.R
 import com.example.forecast.ui.adapter.CityAdapter
 import com.example.forecast.databinding.FragmentCityBinding
+import com.example.forecast.ui.viewModel.CitiesState
 import com.example.forecast.ui.viewModel.MainUIState
 import com.example.forecast.ui.viewModel.MainViewModel
 import kotlinx.coroutines.launch
@@ -66,6 +67,7 @@ class CityFragment : Fragment() {
 
         setupRecyclerView()
         setupSwipeRefresh()
+        observeCitiesState()
         observeViewModelState()
         observeMessageError()
         setupItemTouchHelper()
@@ -116,6 +118,18 @@ class CityFragment : Fragment() {
     private fun setupRecyclerView() = with(binding) {
         rvCity.adapter = cityAdapter
         rvCity.layoutManager = LinearLayoutManager(requireContext())
+    }
+
+    private fun observeCitiesState() = with(binding) {
+        viewModel.citiesState.observe(viewLifecycleOwner) { state ->
+            when (state) {
+                CitiesState.Standard -> cityAdapter.hideLoadingFooter()
+                CitiesState.Loading -> cityAdapter.showLoadingFooter()
+                CitiesState.Error -> {
+                    cityAdapter.hideLoadingFooter()
+                }
+            }
+        }
     }
 
     private fun observeViewModelState() {

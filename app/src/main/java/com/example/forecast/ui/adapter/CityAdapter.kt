@@ -13,9 +13,15 @@ import kotlin.math.round
 
 class CityAdapter(
     private val onItemClick: (CurrentWeather) -> Unit
-) : RecyclerView.Adapter<CityAdapter.WeatherViewHolder>() {
+) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
-    val cityList = mutableListOf<CurrentWeather>()
+    private val cityList = mutableListOf<CurrentWeather>()
+    private var isLoadingFooterVisible = false
+
+    companion object {
+        private const val VIEW_TYPE_ITEM = 1
+        private const val VIEW_TYPE_LOADING = 2
+    }
 
     fun updateCities(newCities: List<CurrentWeather>) {
         val diffCallback = CityDiffCallback(cityList, newCities)
@@ -31,6 +37,20 @@ class CityAdapter(
         cityList.removeAt(position)
         notifyItemRemoved(position)
         return city
+    }
+
+    fun showLoadingFooter() {
+        if (!isLoadingFooterVisible) {
+            isLoadingFooterVisible = true
+            notifyItemInserted(itemCount - 1)
+        }
+    }
+
+    fun hideLoadingFooter() {
+        if (isLoadingFooterVisible) {
+            isLoadingFooterVisible = false
+            notifyItemRemoved(itemCount)
+        }
     }
 
     inner class WeatherViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -49,17 +69,35 @@ class CityAdapter(
         }
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): WeatherViewHolder {
-        val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.item_city, parent, false)
-        return WeatherViewHolder(view)
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+        return if (viewType == VIEW_TYPE_ITEM) {
+            val view = LayoutInflater.from(parent.context)
+                .inflate(R.layout.item_city, parent, false)
+            WeatherViewHolder(view)
+        } else {
+            val view = LayoutInflater.from(parent.context)
+                .inflate(R.layout.item_loading, parent, false)
+            LoadingViewHolder(view)
+        }
     }
 
-    override fun onBindViewHolder(holder: WeatherViewHolder, position: Int) {
-        holder.bind(cityList[position], holder.itemView.context)
+    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+        if (holder is WeatherViewHolder) {
+            holder.bind(cityList[position], holder.itemView.context)
+        }
     }
 
-    override fun getItemCount(): Int = cityList.size
+    override fun getItemCount(): Int = cityList.size + if (isLoadingFooterVisible) 1 else 0
+
+    override fun getItemViewType(position: Int): Int {
+        return if (position == cityList.size && isLoadingFooterVisible) {
+            VIEW_TYPE_LOADING
+        } else {
+            VIEW_TYPE_ITEM
+        }
+    }
+
+    inner class LoadingViewHolder(view: View) : RecyclerView.ViewHolder(view)
 }
 
 class CityDiffCallback(
