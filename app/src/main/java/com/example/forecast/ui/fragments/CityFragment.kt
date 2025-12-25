@@ -26,6 +26,7 @@ import com.example.forecast.databinding.FragmentCityBinding
 import com.example.forecast.ui.viewModel.CitiesState
 import com.example.forecast.ui.viewModel.MainUIState
 import com.example.forecast.ui.viewModel.MainViewModel
+import com.example.forecast.ui.viewModel.RefreshState
 import kotlinx.coroutines.launch
 
 class CityFragment : Fragment() {
@@ -67,8 +68,9 @@ class CityFragment : Fragment() {
 
         setupRecyclerView()
         setupSwipeRefresh()
-        observeCitiesState()
         observeViewModelState()
+        observeRefreshState()
+        observeCitiesState()
         observeMessageError()
         setupItemTouchHelper()
         setupAddCityCardView()
@@ -103,6 +105,21 @@ class CityFragment : Fragment() {
         _binding = null
     }
 
+    private fun observeRefreshState() = with(binding) {
+        viewModel.refreshState.observe(viewLifecycleOwner) { state ->
+            when (state) {
+                RefreshState.Loading -> swipeRefreshLayout.post {
+                    swipeRefreshLayout.isRefreshing = true
+                    btnAddCity.visibility = View.GONE
+                }
+                RefreshState.Standard -> swipeRefreshLayout.post {
+                    swipeRefreshLayout.isRefreshing = false
+                    btnAddCity.visibility = View.VISIBLE
+                }
+            }
+        }
+    }
+
     private fun setupSwipeRefresh() = with(binding) {
         swipeRefreshLayout.setOnRefreshListener {
             viewModel.onSwipeRefresh(requireContext())
@@ -123,8 +140,16 @@ class CityFragment : Fragment() {
     private fun observeCitiesState() = with(binding) {
         viewModel.citiesState.observe(viewLifecycleOwner) { state ->
             when (state) {
-                CitiesState.Standard -> cityAdapter.hideLoadingFooter()
-                CitiesState.Loading -> cityAdapter.showLoadingFooter()
+                CitiesState.Standard -> {
+                    cityAdapter.hideLoadingFooter()
+                    swipeRefreshLayout.isEnabled = true
+                }
+                CitiesState.Loading -> {
+                    cvAddFirstCity.visibility = View.GONE
+                    cvCity.visibility = View.VISIBLE
+                    cityAdapter.showLoadingFooter()
+                    swipeRefreshLayout.isEnabled = false
+                }
                 CitiesState.Error -> {
                     cityAdapter.hideLoadingFooter()
                 }
@@ -159,7 +184,7 @@ class CityFragment : Fragment() {
         cvAddFirstCity.visibility = if (state.cities.isEmpty()) View.VISIBLE else View.GONE
         btnAddCity.visibility = View.VISIBLE
         cityAdapter.updateCities(state.cities)
-        swipeRefreshLayout.isEnabled = true
+        swipeRefreshLayout.isEnabled = if (state.cities.isEmpty()) false else true
     }
 
     private fun handleErrorState(state: MainUIState.Error) = with(binding) {
@@ -195,7 +220,7 @@ class CityFragment : Fragment() {
                 val city = cityAdapter.removeCity(position)
 
                 viewLifecycleOwner.lifecycleScope.launch {
-                    viewModel.removeCity(city.name, requireContext())
+                    viewModel.requestRemoveCity(city.name, requireContext())
                 }
             }
         }

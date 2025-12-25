@@ -14,6 +14,8 @@ import com.example.forecast.network.retrofit.RetrofitClient
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 sealed class MainUIState {
 
@@ -29,6 +31,12 @@ sealed class CitiesState {
     object Error : CitiesState()
 }
 
+sealed class RefreshState {
+
+    object Standard: RefreshState()
+    object Loading : RefreshState()
+}
+
 class MainViewModel : ViewModel() {
 
     companion object {
@@ -40,6 +48,9 @@ class MainViewModel : ViewModel() {
 
     private val _citiesState = MutableLiveData<CitiesState>()
     val citiesState: LiveData<CitiesState> = _citiesState
+
+    private val _refreshState = MutableLiveData<RefreshState>()
+    val refreshState: LiveData<RefreshState> = _refreshState
 
     private val _errorMessage = MutableLiveData<String>()
     val errorMessage : LiveData<String> get() = _errorMessage
@@ -54,6 +65,9 @@ class MainViewModel : ViewModel() {
     private var wasLoadingWhenPaused = false
     private var restartRequiredLoadCities = false
     private var restartRequiredRefreshSwipe = false
+
+    private var activeAddCities = 0
+    private val mutex = Mutex()
 
     private fun isCachedValidCurrent(timestamp: Long): Boolean {
         return (System.currentTimeMillis() - timestamp) <
@@ -128,30 +142,26 @@ class MainViewModel : ViewModel() {
     }
 
     private fun addNewCity(cityName: String, context: Context) {
-        if (addCitiesJob?.isActive == true) {
-            Log.e("MainViewModel", "Добавление города уже началось")
-            return
-        }
-
-        _citiesState.value = CitiesState.Loading
-
         addCitiesJob = viewModelScope.launch {
+            Log.e("MainViewModel", "+1 город к загрузке")
+            activeAddCities++
             Log.e("MainViewModel", "Запуск корутины addCity")
             addCity(cityName, context)
             Log.e("MainViewModel", "Корутина addCity завершена")
         }
     }
 
-    private suspend fun addCity(cityName: String, context: Context) {
+    private suspend fun addCity(cityName: String, context: Context) = mutex.withLock {
+        _citiesState.value = CitiesState.Loading
         val currentCities = WeatherRepository.getMemoryCities()
 
         try {
-            delay(7_000)
+            delay(15_000)
 
             if (currentCities.any { it.equals(cityName, ignoreCase = true) }) {
                 _errorMessage.postValue(context.getString(R.string.error_city_already_added))
                 _citiesState.postValue(CitiesState.Standard)
-                return
+                return@withLock
             }
 
             Log.e("MainViewModel", "Запрос API для нового города")
@@ -166,15 +176,28 @@ class MainViewModel : ViewModel() {
                 .mapNotNull { WeatherRepository.getCachedDetails(it)?.current }
 
             _uiState.postValue(MainUIState.Success(cities))
-            _citiesState.postValue(CitiesState.Standard)
+            Log.e("MainViewModel", "-1 город - загружен")
+            activeAddCities--
+            _citiesState.postValue(
+                if (activeAddCities > 0) {
+                    Log.e("MainViewModel", "Города на добавление еще есть - не скрываем футер")
+                    CitiesState.Loading
+                }
+                else {
+                    Log.e("MainViewModel", "Города на добавление закончились - скрываем футер")
+                    CitiesState.Standard
+                }
+            )
         } catch (e: Exception) {
             Log.e("MainViewModel", "Запрос API для нового города провален - ошибка")
             _uiState.postValue(MainUIState.Error(context.getString(R.string.error_load_cities)))
             _citiesState.postValue(CitiesState.Error)
+            Log.e("MainViewModel", "-1 город - загружен")
+            activeAddCities--
         }
     }
 
-    suspend fun removeCity(cityName: String, context: Context) {
+    private suspend fun removeCity(cityName: String, context: Context) = mutex.withLock {
         WeatherRepository.removeCity(cityName)
 
         viewModelScope.launch {
@@ -186,14 +209,20 @@ class MainViewModel : ViewModel() {
 
     private fun refreshCities(context: Context) {
         if (refreshSwipeJob?.isActive == true) {
-            Log.e("DetailViewModel", "Refresh уже начался...")
+            Log.e("MainViewModel", "Refresh уже начался...")
             return
         }
 
+        _refreshState.value = RefreshState.Loading
+
         refreshSwipeJob = viewModelScope.launch {
-            Log.e("MainViewModel", "Запуск корутины refreshSwipe")
-            refreshCitiesSwipe(context)
-            Log.e("MainViewModel", "Корутина refreshSwipe завершена")
+            try {
+                Log.e("MainViewModel", "Запуск корутины refreshSwipe")
+                refreshCitiesSwipe(context)
+                Log.e("MainViewModel", "Корутина refreshSwipe завершена")
+            } finally {
+                _refreshState.value = RefreshState.Standard
+            }
         }
     }
 
@@ -323,6 +352,10 @@ class MainViewModel : ViewModel() {
 
     fun onAddNewCity(cityName: String, context: Context) {
         addNewCity(cityName, context)
+    }
+
+    suspend fun requestRemoveCity(cityName: String, context: Context) {
+        removeCity(cityName, context)
     }
 
     fun onSwipeRefresh(context: Context) {
