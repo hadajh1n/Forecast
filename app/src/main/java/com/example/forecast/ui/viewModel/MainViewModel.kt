@@ -31,10 +31,10 @@ sealed class CitiesState {
     object Error : CitiesState()
 }
 
-sealed class RefreshState {
+sealed class RefreshCityState {
 
-    object Standard: RefreshState()
-    object Loading : RefreshState()
+    object Standard: RefreshCityState()
+    object Loading : RefreshCityState()
 }
 
 class MainViewModel : ViewModel() {
@@ -49,8 +49,8 @@ class MainViewModel : ViewModel() {
     private val _citiesState = MutableLiveData<CitiesState>()
     val citiesState: LiveData<CitiesState> = _citiesState
 
-    private val _refreshState = MutableLiveData<RefreshState>()
-    val refreshState: LiveData<RefreshState> = _refreshState
+    private val _refreshState = MutableLiveData<RefreshCityState>()
+    val refreshState: LiveData<RefreshCityState> = _refreshState
 
     private val _errorMessage = MutableLiveData<String>()
     val errorMessage : LiveData<String> get() = _errorMessage
@@ -213,7 +213,7 @@ class MainViewModel : ViewModel() {
             return
         }
 
-        _refreshState.value = RefreshState.Loading
+        _refreshState.value = RefreshCityState.Loading
 
         refreshSwipeJob = viewModelScope.launch {
             try {
@@ -221,7 +221,7 @@ class MainViewModel : ViewModel() {
                 refreshCitiesSwipe(context)
                 Log.e("MainViewModel", "Корутина refreshSwipe завершена")
             } finally {
-                _refreshState.value = RefreshState.Standard
+                _refreshState.value = RefreshCityState.Standard
             }
         }
     }

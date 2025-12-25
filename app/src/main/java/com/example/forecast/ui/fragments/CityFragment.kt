@@ -26,7 +26,7 @@ import com.example.forecast.databinding.FragmentCityBinding
 import com.example.forecast.ui.viewModel.CitiesState
 import com.example.forecast.ui.viewModel.MainUIState
 import com.example.forecast.ui.viewModel.MainViewModel
-import com.example.forecast.ui.viewModel.RefreshState
+import com.example.forecast.ui.viewModel.RefreshCityState
 import kotlinx.coroutines.launch
 
 class CityFragment : Fragment() {
@@ -108,11 +108,11 @@ class CityFragment : Fragment() {
     private fun observeRefreshState() = with(binding) {
         viewModel.refreshState.observe(viewLifecycleOwner) { state ->
             when (state) {
-                RefreshState.Loading -> swipeRefreshLayout.post {
+                RefreshCityState.Loading -> swipeRefreshLayout.post {
                     swipeRefreshLayout.isRefreshing = true
                     btnAddCity.visibility = View.GONE
                 }
-                RefreshState.Standard -> swipeRefreshLayout.post {
+                RefreshCityState.Standard -> swipeRefreshLayout.post {
                     swipeRefreshLayout.isRefreshing = false
                     btnAddCity.visibility = View.VISIBLE
                 }

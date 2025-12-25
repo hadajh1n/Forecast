@@ -37,6 +37,12 @@ sealed class DetailUIState {
     data class Error(val message: String) : DetailUIState()
 }
 
+sealed class RefreshDetailState {
+
+    object Standard: RefreshDetailState()
+    object Loading : RefreshDetailState()
+}
+
 class DetailViewModel : ViewModel() {
 
     companion object {
@@ -48,6 +54,9 @@ class DetailViewModel : ViewModel() {
     private val _detailState = MutableLiveData<DetailUIState>()
     val detailState: LiveData<DetailUIState> get() = _detailState
 
+    private val _refreshState = MutableLiveData<RefreshDetailState>()
+    val refreshState: LiveData<RefreshDetailState> = _refreshState
+
     private val _messageEvent = MutableLiveData<Event<String>>()
     val messageEvent: LiveData<Event<String>> get() = _messageEvent
 
@@ -58,6 +67,9 @@ class DetailViewModel : ViewModel() {
     private var loadCityDetailJob: Job? = null
     private var refreshSwipeJob: Job? = null
     private var refreshBackgroundJob: Job? = null
+    private var wasLoadingWhenPaused = false
+    private var restartRequiredLoadCityDetail = false
+    private var restartRequiredRefreshSwipe = false
 
     private fun isCachedValidCurrent(timestamp: Long): Boolean {
         return (System.currentTimeMillis() - timestamp) <
@@ -72,6 +84,7 @@ class DetailViewModel : ViewModel() {
     fun initData(cityName: String, context: Context) {
         if (isLoadedStartData) return
 
+        Log.e("DetailViewModel", "Запрос данных о деталях погоды")
         isLoadedStartData = true
         loadCityDetail(cityName, context)
     }
@@ -80,8 +93,10 @@ class DetailViewModel : ViewModel() {
         if (loadCityDetailJob?.isActive == true) return
 
         loadCityDetailJob = viewModelScope.launch {
+            Log.e("DetailViewModel", "Запуск корутины loadCityDetail")
             _detailState.postValue(DetailUIState.Loading)
             loadCityDetailData(cityName, context)
+            Log.e("DetailViewModel", "Корутина loadCityDetail завершена")
         }
     }
 
@@ -101,6 +116,8 @@ class DetailViewModel : ViewModel() {
         }
 
         try {
+            delay(7_000)
+
             if (!isCurrentValid) {
                 Log.e("DetailViewModel", "Запрос API для current")
                 val current = RetrofitClient.weatherApi.getCurrentWeather(cityName)
@@ -142,11 +159,16 @@ class DetailViewModel : ViewModel() {
             return
         }
 
+        _refreshState.value = RefreshDetailState.Loading
+
         refreshSwipeJob = viewModelScope.launch {
             try {
+                Log.e("DetailViewModel", "Запуск корутины Refresh")
                 refreshDetailsSwipe(cityName, context)
+                Log.e("DetailViewModel", "Корутина Refresh завершена")
             } finally {
                 startRefreshBackground(cityName, context)
+                _refreshState.value = RefreshDetailState.Standard
             }
         }
     }
@@ -155,7 +177,6 @@ class DetailViewModel : ViewModel() {
         this.cityName = cityName
         this.context = context
 
-        stopRefresh()
         try {
             delay(7_000)
 
@@ -254,13 +275,13 @@ class DetailViewModel : ViewModel() {
         return dailyForecasts
     }
 
-    fun refreshBackground(cityName: String, context: Context) {
-        if (refreshBackgroundJob?.isActive == true) return
-
-        refreshBackgroundJob = viewModelScope.launch {
-            startRefreshBackground(cityName, context)
-        }
-    }
+//    private fun refreshBackground(cityName: String, context: Context) {
+//        if (refreshBackgroundJob?.isActive == true) return
+//
+//        refreshBackgroundJob = viewModelScope.launch {
+//            startRefreshBackground(cityName, context)
+//        }
+//    }
 
     private suspend fun startRefreshBackground(cityName: String, context: Context) {
         this.context = context
@@ -320,25 +341,59 @@ class DetailViewModel : ViewModel() {
         }
     }
 
+    private fun cancelLoadingOnPause() {
+        wasLoadingWhenPaused = true
+
+        if (loadCityDetailJob?.isActive == true) {
+            Log.e("DetailViewModel", "Отмена корутины loadCitiesDetail")
+            loadCityDetailJob?.cancel()
+            loadCityDetailJob = null
+            restartRequiredLoadCityDetail = true
+        }
+
+        if (refreshSwipeJob?.isActive == true) {
+            Log.e("DetailViewModel", "Отмена корутины Refresh")
+            refreshSwipeJob?.cancel()
+            refreshSwipeJob = null
+            restartRequiredRefreshSwipe = true
+        }
+    }
+
+    private fun retryInterruptedLoad(cityName: String, context: Context) {
+        if (wasLoadingWhenPaused) {
+
+            if (restartRequiredLoadCityDetail) {
+                Log.e("DetailViewModel", "Перезапуск корутины loadCitiesDetail")
+                loadCityDetail(cityName, context)
+                restartRequiredLoadCityDetail = false
+            }
+
+            if (restartRequiredRefreshSwipe) {
+                Log.e("DetailViewModel", "Перезапуск корутины Refresh")
+                refreshDetails(cityName, context)
+                restartRequiredRefreshSwipe = false
+            }
+        }
+    }
+
+    fun onStopFragment(isChangingConfigurations: Boolean) {
+        if ((loadCityDetailJob?.isActive == true || refreshSwipeJob?.isActive == true) &&
+            !isChangingConfigurations) cancelLoadingOnPause()
+    }
+
+    fun onResumeFragment(cityName: String, context: Context) {
+        if (wasLoadingWhenPaused) retryInterruptedLoad(cityName, context)
+    }
+
     fun onSwipeRefresh(cityName: String, context: Context) {
         refreshDetails(cityName, context)
     }
 
     fun onRefreshBackground(cityName: String, context: Context) {
-        refreshBackground(cityName, context)
+//        refreshBackground(cityName, context)
     }
 
     fun onRetryButton(cityName: String, context: Context) {
         loadCityDetail(cityName, context)
-    }
-
-    fun stopRefresh() {
-        refreshSwipeJob?.cancel()
-        refreshSwipeJob = null
-    }
-
-    override fun onCleared() {
-        super.onCleared()
-        stopRefresh()
     }
 }

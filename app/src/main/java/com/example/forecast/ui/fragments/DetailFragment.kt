@@ -9,7 +9,6 @@ import androidx.core.content.ContextCompat
 import com.example.forecast.ui.adapter.DetailAdapter
 import com.example.forecast.ui.viewModel.DetailViewModel
 import androidx.fragment.app.viewModels
-import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.navArgs
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
@@ -18,8 +17,8 @@ import com.example.forecast.core.utils.NotificationHelper
 import com.example.forecast.core.utils.PreferencesHelper
 import com.example.forecast.databinding.FragmentDetailBinding
 import com.example.forecast.ui.viewModel.DetailUIState
+import com.example.forecast.ui.viewModel.RefreshDetailState
 import com.google.android.material.snackbar.Snackbar
-import kotlinx.coroutines.launch
 
 class DetailFragment : Fragment() {
 
@@ -52,6 +51,7 @@ class DetailFragment : Fragment() {
         setupSwipeRefresh()
         observeMessageEvents()
         setupCityName()
+        observeRefreshState()
         observeViewModel()
         setupRetryButton()
         setupDangerousWeatherSwitch()
@@ -66,9 +66,12 @@ class DetailFragment : Fragment() {
 
     override fun onStop() {
         super.onStop()
-        if (!requireActivity().isChangingConfigurations) {
-            viewModel.stopRefresh()
-        }
+        viewModel.onStopFragment(requireActivity().isChangingConfigurations)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        viewModel.onResumeFragment(cityName, requireContext())
     }
 
     override fun onDestroyView() {
@@ -80,6 +83,19 @@ class DetailFragment : Fragment() {
     private fun setupSwipeRefresh() = with(binding) {
         swipeRefreshLayout.setOnRefreshListener {
             viewModel.onSwipeRefresh(cityName, requireContext())
+        }
+    }
+
+    private fun observeRefreshState() = with(binding) {
+        viewModel.refreshState.observe(viewLifecycleOwner) { state ->
+            when (state) {
+                RefreshDetailState.Loading -> swipeRefreshLayout.post {
+                    swipeRefreshLayout.isRefreshing = true
+                }
+                RefreshDetailState.Standard -> swipeRefreshLayout.post {
+                    swipeRefreshLayout.isRefreshing = false
+                }
+            }
         }
     }
 
