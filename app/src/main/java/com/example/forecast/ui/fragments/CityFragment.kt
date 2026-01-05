@@ -44,7 +44,7 @@ class CityFragment : Fragment() {
     private val cityAdapter = CityAdapter { currentWeather ->
         try {
             val action = CityFragmentDirections
-                .actionCityFragmentToDetailFragment(currentWeather.name)
+                .actionCityFragmentToDetailFragment(currentWeather.cityName)
             findNavController().navigate(action)
         } catch (e: IllegalStateException) {
         }
@@ -220,7 +220,7 @@ class CityFragment : Fragment() {
                 val city = cityAdapter.removeCity(position)
 
                 viewLifecycleOwner.lifecycleScope.launch {
-                    viewModel.requestRemoveCity(city.name, requireContext())
+                    viewModel.requestRemoveCity(city.cityName, requireContext())
                 }
             }
         }

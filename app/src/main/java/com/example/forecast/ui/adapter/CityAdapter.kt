@@ -8,14 +8,14 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.example.forecast.R
 import com.example.forecast.databinding.ItemCityBinding
-import com.example.forecast.data.dataclass.CurrentWeather
+import com.example.forecast.data.dataclass.current.CurrentWeatherUI
 import kotlin.math.round
 
 class CityAdapter(
-    private val onItemClick: (CurrentWeather) -> Unit
+    private val onItemClick: (CurrentWeatherUI) -> Unit
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
-    private val cityList = mutableListOf<CurrentWeather>()
+    private val cityList = mutableListOf<CurrentWeatherUI>()
     private var isLoadingFooterVisible = false
 
     companion object {
@@ -23,7 +23,7 @@ class CityAdapter(
         private const val VIEW_TYPE_LOADING = 2
     }
 
-    fun updateCities(newCities: List<CurrentWeather>) {
+    fun updateCities(newCities: List<CurrentWeatherUI>) {
         val diffCallback = CityDiffCallback(cityList, newCities)
         val diffResult = DiffUtil.calculateDiff(diffCallback)
 
@@ -32,7 +32,7 @@ class CityAdapter(
         diffResult.dispatchUpdatesTo(this@CityAdapter)
     }
 
-    fun removeCity(position: Int): CurrentWeather {
+    fun removeCity(position: Int): CurrentWeatherUI {
         val city = cityList[position]
         cityList.removeAt(position)
         notifyItemRemoved(position)
@@ -56,15 +56,15 @@ class CityAdapter(
     inner class WeatherViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         private val binding = ItemCityBinding.bind(view)
 
-        fun bind(currentWeather: CurrentWeather, context: Context) = with(binding) {
-            tvCity.text = currentWeather.name
+        fun bind(current: CurrentWeatherUI, context: Context) = with(binding) {
+            tvCity.text = current.cityName
             tvTemperature.text = context.getString(
                 R.string.temperature_format,
-                round(currentWeather.main.temp).toInt(),
+                round(current.temp).toInt(),
             )
 
             root.setOnClickListener {
-                onItemClick(currentWeather)
+                onItemClick(current)
             }
         }
     }
@@ -101,8 +101,8 @@ class CityAdapter(
 }
 
 class CityDiffCallback(
-    private val oldList: List<CurrentWeather>,
-    private val newList: List<CurrentWeather>
+    private val oldList: List<CurrentWeatherUI>,
+    private val newList: List<CurrentWeatherUI>
 ) : DiffUtil.Callback() {
 
     override fun getOldListSize(): Int = oldList.size
@@ -110,7 +110,7 @@ class CityDiffCallback(
     override fun getNewListSize(): Int = newList.size
 
     override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
-        return oldList[oldItemPosition].name == newList[newItemPosition].name
+        return oldList[oldItemPosition].cityName == newList[newItemPosition].cityName
     }
 
     override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {

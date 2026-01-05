@@ -23,10 +23,10 @@ class WeatherUpdateWorker(
             for (city in cities) {
                 try {
                     val current = RetrofitClient.weatherApi.getCurrentWeather(city)
-                    WeatherRepository.setCachedCurrent(city, current, System.currentTimeMillis())
+                    WeatherRepository.setCachedCurrent(city, current)
 
                     val forecast = RetrofitClient.weatherApi.getForecast(city)
-                    WeatherRepository.setCachedForecast(city, forecast, System.currentTimeMillis())
+                    WeatherRepository.setCachedForecast(city, forecast)
                 } catch (e: Exception) {
                     Log.e(TAG, "Ошибка обновления для $city", e)
                 }

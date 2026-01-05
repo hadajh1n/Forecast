@@ -10,19 +10,13 @@ import com.example.forecast.core.utils.Constants
 import com.example.forecast.R
 import com.example.forecast.core.utils.Event
 import com.example.forecast.data.repository.WeatherRepository
-import com.example.forecast.data.dataclass.ForecastItem
-import com.example.forecast.data.dataclass.ForecastMain
-import com.example.forecast.data.dataclass.ForecastUI
-import com.example.forecast.data.dataclass.ForecastWeather
-import com.example.forecast.data.dataclass.Weather
+import com.example.forecast.data.dataclass.forecast.ForecastWeatherUI
 import com.example.forecast.network.retrofit.RetrofitClient
+import com.example.forecast.ui.mapper.CurrentWeatherUiMapper
+import com.example.forecast.ui.mapper.ForecastWeatherUiMapper
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Date
-import java.util.Locale
 import kotlin.math.round
 
 sealed class DetailUIState {
@@ -31,7 +25,7 @@ sealed class DetailUIState {
     data class Success(
         val temperature: String,
         val iconUrl: String,
-        val forecast: List<ForecastUI>
+        val forecast: List<ForecastWeatherUI>
     ) : DetailUIState()
 
     data class Error(val message: String) : DetailUIState()
@@ -45,11 +39,8 @@ sealed class RefreshDetailState {
 
 class DetailViewModel : ViewModel() {
 
-    companion object {
-        private const val SECONDS_TO_MILLIS = 1000L
-        private const val WEATHER_ICON_URL = "https://openweathermap.org/img/wn/%s.png"
-        private const val TAG = "DetailViewModel"
-    }
+    private val currentUiMapper = CurrentWeatherUiMapper()
+    private var forecastUiMapper: ForecastWeatherUiMapper? = null
 
     private val _detailState = MutableLiveData<DetailUIState>()
     val detailState: LiveData<DetailUIState> get() = _detailState
@@ -84,7 +75,7 @@ class DetailViewModel : ViewModel() {
     fun initData(cityName: String, context: Context) {
         if (isLoadedStartData) return
 
-        Log.e("DetailViewModel", "Запрос данных о деталях погоды")
+        Log.e("MainViewModel", "Запрос данных о деталях погоды")
         isLoadedStartData = true
         loadCityDetail(cityName, context)
     }
@@ -93,10 +84,10 @@ class DetailViewModel : ViewModel() {
         if (loadCityDetailJob?.isActive == true) return
 
         loadCityDetailJob = viewModelScope.launch {
-            Log.e("DetailViewModel", "Запуск корутины loadCityDetail")
+            Log.e("MainViewModel", "Запуск корутины loadCityDetail")
             _detailState.postValue(DetailUIState.Loading)
             loadCityDetailData(cityName, context)
-            Log.e("DetailViewModel", "Корутина loadCityDetail завершена")
+            Log.e("MainViewModel", "Корутина loadCityDetail завершена")
         }
     }
 
@@ -105,47 +96,49 @@ class DetailViewModel : ViewModel() {
         this.context = context
 
         val cachedData = WeatherRepository.getCachedDetails(cityName)
-        val isCurrentValid = cachedData?.current != null
-                && isCachedValidCurrent(cachedData.timestampCurrent)
-        val isForecastValid = cachedData?.forecast != null
-                && isCachedValidForecast(cachedData.timestampForecast)
+        val isCurrentValid = cachedData?.current != null &&
+                isCachedValidCurrent(cachedData.current.timestamp)
+        val isForecastValid = cachedData?.forecast != null &&
+                isCachedValidForecast(cachedData.forecast.timestamp)
 
         if (isCurrentValid && isForecastValid) {
-            _detailState.postValue(mapToUI(cachedData!!, context))
+            _detailState.postValue(buildSuccessState(cachedData!!, context))
             return
         }
 
         try {
-            delay(7_000)
+            delay(3_000)
+
+            if (isCurrentValid && isForecastValid) {
+                _detailState.postValue(buildSuccessState(cachedData!!, context))
+                return
+            }
 
             if (!isCurrentValid) {
-                Log.e("DetailViewModel", "Запрос API для current")
-                val current = RetrofitClient.weatherApi.getCurrentWeather(cityName)
-                WeatherRepository.setCachedCurrent(
-                    cityName,
-                    current,
-                    System.currentTimeMillis()
-                )
+                Log.e("MainViewModel", "Запрос API для current")
+                val currentDto = RetrofitClient.weatherApi.getCurrentWeather(cityName)
+                WeatherRepository.setCachedCurrent(cityName, currentDto)
             }
+
             if (!isForecastValid) {
-                Log.e("DetailViewModel", "Запрос API для forecast")
-                val forecast = RetrofitClient.weatherApi.getForecast(cityName)
-                WeatherRepository.setCachedForecast(
-                    cityName,
-                    forecast,
-                    System.currentTimeMillis()
-                )
+                Log.e("MainViewModel", "Запрос API для forecast")
+                val forecastDto = RetrofitClient.weatherApi.getForecast(cityName)
+                WeatherRepository.setCachedForecast(cityName, forecastDto)
             }
 
             val updatedData = WeatherRepository.getCachedDetails(cityName)
-            if (updatedData?.current != null && updatedData.forecast != null) {
-                _detailState.postValue(mapToUI(updatedData, context))
-            } else {
-                _detailState.postValue(
+                ?: return _detailState.postValue(
                     DetailUIState.Error(context.getString(R.string.error_fetch_current_weather))
                 )
 
+            if (updatedData.current == null || updatedData.forecast == null) {
+                _detailState.postValue(
+                    DetailUIState.Error(context.getString(R.string.error_fetch_current_weather))
+                )
+                return
             }
+
+            _detailState.postValue(buildSuccessState(updatedData, context))
         } catch (e: Exception) {
             _detailState.postValue(
                 DetailUIState.Error(context.getString(R.string.error_fetch_current_weather))
@@ -153,9 +146,31 @@ class DetailViewModel : ViewModel() {
         }
     }
 
-    private fun refreshDetails(cityName: String, context: Context) {
+    private fun buildSuccessState(
+        cached: WeatherRepository.CachedWeatherData,
+        context: Context
+    ): DetailUIState.Success {
+
+        if (forecastUiMapper == null) {
+            forecastUiMapper = ForecastWeatherUiMapper(context)
+        }
+
+        val currentUi = currentUiMapper.map(cached.current!!)
+        val forecastUi = forecastUiMapper!!.map(cached.forecast!!)
+
+        return DetailUIState.Success(
+            temperature = context.getString(
+                R.string.temperature_format,
+                round(currentUi.temp).toInt()
+            ),
+            iconUrl = currentUi.iconUrl,
+            forecast = forecastUi
+        )
+    }
+
+    private fun onSwipeRefreshDetails(cityName: String, context: Context) {
         if (refreshSwipeJob?.isActive == true) {
-            Log.e("DetailViewModel", "Refresh уже начался...")
+            Log.e("MainViewModel", "Refresh уже начался...")
             return
         }
 
@@ -163,9 +178,9 @@ class DetailViewModel : ViewModel() {
 
         refreshSwipeJob = viewModelScope.launch {
             try {
-                Log.e("DetailViewModel", "Запуск корутины Refresh")
+                Log.e("MainViewModel", "Запуск корутины Refresh")
                 refreshDetailsSwipe(cityName, context)
-                Log.e("DetailViewModel", "Корутина Refresh завершена")
+                Log.e("MainViewModel", "Корутина Refresh завершена")
             } finally {
                 startRefreshBackground(cityName, context)
                 _refreshState.value = RefreshDetailState.Standard
@@ -174,170 +189,45 @@ class DetailViewModel : ViewModel() {
     }
 
     private suspend fun refreshDetailsSwipe(cityName: String, context: Context) {
-        this.cityName = cityName
-        this.context = context
-
         try {
             delay(7_000)
 
-            val current = RetrofitClient.weatherApi.getCurrentWeather(cityName)
-            WeatherRepository.setCachedCurrent(
-                cityName,
-                current,
-                System.currentTimeMillis()
-            )
+            val currentDto = RetrofitClient.weatherApi.getCurrentWeather(cityName)
+            WeatherRepository.setCachedCurrent(cityName, currentDto)
 
-            val forecast = RetrofitClient.weatherApi.getForecast(cityName)
-            WeatherRepository.setCachedForecast(
-                cityName,
-                forecast,
-                System.currentTimeMillis()
-            )
+            val forecastDto = RetrofitClient.weatherApi.getForecast(cityName)
+            WeatherRepository.setCachedForecast(cityName, forecastDto)
 
-            WeatherRepository.getCachedDetails(cityName)?.let { cachedData ->
-                if (cachedData.current != null && cachedData.forecast != null) {
-                    _detailState.value = mapToUI(cachedData, context)
-                } else {
-                    _detailState.value =
-                        DetailUIState.Error(
-                            context.getString(R.string.error_fetch_current_weather)
-                        )
-                }
+            val updated = WeatherRepository.getCachedDetails(cityName)
+            if (updated?.current != null && updated.forecast != null) {
+                _detailState.postValue(buildSuccessState(updated, context))
             }
         } catch (e: Exception) {
             _messageEvent.postValue(Event(context.getString(R.string.error_pull_to_refresh)))
+        } finally {
+            _refreshState.value = RefreshDetailState.Standard
         }
     }
 
-    private fun mapToUI(
-        cached: WeatherRepository.CachedWeatherData,
-        context: Context
-    ): DetailUIState.Success {
-        val forecastList = cached.forecast?.let { groupForecastByDay(it) } ?: emptyList()
+    private fun refreshBackground(cityName: String, context: Context) {
+        if (refreshBackgroundJob?.isActive == true) return
 
-        val uiForecast = forecastList
-            .take(6)
-            .map {
-                ForecastUI(
-                    dayOfWeek = SimpleDateFormat("E", Locale("ru"))
-                        .format(Date(it.dt * SECONDS_TO_MILLIS))
-                        .uppercase(),
-                    iconUrl = WEATHER_ICON_URL.format(it.weather[0].icon),
-                    tempMax = context.getString(
-                        R.string.temperature_format,
-                        round(it.main.tempMax).toInt()
-                    ),
-                    tempMin = context.getString(
-                        R.string.temperature_format,
-                        round(it.main.tempMin).toInt()
-                    )
-                )
-            }
-
-        return DetailUIState.Success(
-            temperature = context.getString(
-                R.string.temperature_format,
-                round(cached.current!!.main.temp).toInt()
-            ),
-            iconUrl = WEATHER_ICON_URL.format(cached.current!!.weather[0].icon),
-            forecast = uiForecast
-        )
-    }
-
-    private fun groupForecastByDay(response: ForecastWeather): List<ForecastItem> {
-        val calendar = Calendar.getInstance()
-        calendar.add(Calendar.DAY_OF_YEAR, 1)
-        val nextDay = calendar.get(Calendar.DAY_OF_YEAR)
-        val dailyForecasts = mutableListOf<ForecastItem>()
-        val groupedByDay = response.list.groupBy { item ->
-            val itemCal = Calendar.getInstance()
-            itemCal.time = Date(item.dt * SECONDS_TO_MILLIS)
-            itemCal.get(Calendar.DAY_OF_YEAR)
+        refreshBackgroundJob = viewModelScope.launch {
+            startRefreshBackground(cityName, context)
         }
-
-        for (day in nextDay until nextDay + 6) {
-            val dayData = groupedByDay[day]
-            if (dayData != null && dayData.isNotEmpty()) {
-                val maxTemp = dayData.maxOfOrNull { it.main.temp } ?: 0f
-                val minTemp = dayData.minOfOrNull { it.main.temp } ?: 0f
-                val icon = dayData.first().weather[0].icon
-                val dt = dayData.first().dt
-                dailyForecasts.add(
-                    ForecastItem(
-                        dt = dt,
-                        main = ForecastMain(temp = 0f, tempMax = maxTemp, tempMin = minTemp),
-                        weather = listOf(Weather(icon = icon, description = ""))
-                    )
-                )
-            }
-        }
-
-        return dailyForecasts
     }
-
-//    private fun refreshBackground(cityName: String, context: Context) {
-//        if (refreshBackgroundJob?.isActive == true) return
-//
-//        refreshBackgroundJob = viewModelScope.launch {
-//            startRefreshBackground(cityName, context)
-//        }
-//    }
 
     private suspend fun startRefreshBackground(cityName: String, context: Context) {
-        this.context = context
-
-        while (refreshBackgroundJob?.isActive == true) {
-            val cachedData = WeatherRepository.getCachedDetails(cityName)
-            val ageCurrent = cachedData?.timestampCurrent?.let {
-                System.currentTimeMillis() - it
-            } ?: Long.MAX_VALUE
-            val ageForecast = cachedData?.timestampForecast?.let {
-                System.currentTimeMillis() - it
-            } ?: Long.MAX_VALUE
-
-            val needCurrent = ageCurrent >= Constants.CacheLifetime.CACHE_VALIDITY_DURATION
-                    || cachedData?.current == null
-            val needForecast = ageForecast >= Constants.CacheLifetime.CACHE_VALIDITY_DURATION
-                    || cachedData?.forecast == null
-
-            if (!needCurrent && !needForecast) {
-                if (cachedData != null) _detailState.value = mapToUI(cachedData, context)
-                delay(Constants.CacheLifetime.CACHE_VALIDITY_DURATION.coerceAtLeast(1000L))
-                continue
-            }
-
+        while (true) {
+            delay(Constants.CacheLifetime.BACKGROUND_UPDATE_INTERVAL)
             try {
-                if (needCurrent) {
-                    val current = RetrofitClient.weatherApi.getCurrentWeather(cityName)
-                    WeatherRepository.setCachedCurrent(
-                        cityName,
-                        current,
-                        System.currentTimeMillis())
-                }
-                if (needForecast) {
-                    val forecast = RetrofitClient.weatherApi.getForecast(cityName)
-                    WeatherRepository.setCachedForecast(
-                        cityName,
-                        forecast,
-                        System.currentTimeMillis())
-                }
+                val currentDto = RetrofitClient.weatherApi.getCurrentWeather(cityName)
+                WeatherRepository.setCachedCurrent(cityName, currentDto)
+                val forecastDto = RetrofitClient.weatherApi.getForecast(cityName)
+                WeatherRepository.setCachedForecast(cityName, forecastDto)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to refresh", e)
+                Log.e("MainViewModel", "Ошибка фонового обновления", e)
             }
-
-            val updatedData = WeatherRepository.getCachedDetails(cityName)
-            if (updatedData?.current != null && updatedData.forecast != null) {
-                _detailState.value = mapToUI(updatedData, context)
-            }
-
-            val remainingCurrent = Constants.CacheLifetime.CACHE_VALIDITY_DURATION -
-                    (System.currentTimeMillis() -
-                            (WeatherRepository.getTimestampCurrent(cityName) ?: 0L))
-            val remainingForecast = Constants.CacheLifetime.CACHE_VALIDITY_DURATION -
-                    (System.currentTimeMillis() -
-                            (WeatherRepository.getTimestampForecast(cityName) ?: 0L))
-            val minDelay = minOf(remainingCurrent, remainingForecast).coerceAtLeast(1000L)
-            delay(minDelay)
         }
     }
 
@@ -345,14 +235,14 @@ class DetailViewModel : ViewModel() {
         wasLoadingWhenPaused = true
 
         if (loadCityDetailJob?.isActive == true) {
-            Log.e("DetailViewModel", "Отмена корутины loadCitiesDetail")
+            Log.e("MainViewModel", "Отмена корутины loadCitiesDetail")
             loadCityDetailJob?.cancel()
             loadCityDetailJob = null
             restartRequiredLoadCityDetail = true
         }
 
         if (refreshSwipeJob?.isActive == true) {
-            Log.e("DetailViewModel", "Отмена корутины Refresh")
+            Log.e("MainViewModel", "Отмена корутины Refresh")
             refreshSwipeJob?.cancel()
             refreshSwipeJob = null
             restartRequiredRefreshSwipe = true
@@ -363,14 +253,14 @@ class DetailViewModel : ViewModel() {
         if (wasLoadingWhenPaused) {
 
             if (restartRequiredLoadCityDetail) {
-                Log.e("DetailViewModel", "Перезапуск корутины loadCitiesDetail")
+                Log.e("MainViewModel", "Перезапуск корутины loadCitiesDetail")
                 loadCityDetail(cityName, context)
                 restartRequiredLoadCityDetail = false
             }
 
             if (restartRequiredRefreshSwipe) {
-                Log.e("DetailViewModel", "Перезапуск корутины Refresh")
-                refreshDetails(cityName, context)
+                Log.e("MainViewModel", "Перезапуск корутины Refresh")
+                onSwipeRefreshDetails(cityName, context)
                 restartRequiredRefreshSwipe = false
             }
         }
@@ -386,7 +276,7 @@ class DetailViewModel : ViewModel() {
     }
 
     fun onSwipeRefresh(cityName: String, context: Context) {
-        refreshDetails(cityName, context)
+        onSwipeRefreshDetails(cityName, context)
     }
 
     fun onRefreshBackground(cityName: String, context: Context) {

@@ -8,13 +8,13 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.forecast.R
 import com.example.forecast.databinding.ItemDetailBinding
-import com.example.forecast.data.dataclass.ForecastUI
+import com.example.forecast.data.dataclass.forecast.ForecastWeatherUI
 
 class DetailAdapter : RecyclerView.Adapter<DetailAdapter.DetailViewHolder>() {
 
-    val detailList = mutableListOf<ForecastUI>()
+    private val detailList = mutableListOf<ForecastWeatherUI>()
 
-    fun updateDetails(newDetails: List<ForecastUI>) {
+    fun updateDetails(newDetails: List<ForecastWeatherUI>) {
         val diffCallback = DetailDiffCallback(detailList, newDetails)
         val diffResult = DiffUtil.calculateDiff(diffCallback)
 
@@ -26,7 +26,7 @@ class DetailAdapter : RecyclerView.Adapter<DetailAdapter.DetailViewHolder>() {
     inner class DetailViewHolder(view : View): RecyclerView.ViewHolder(view) {
         private val binding = ItemDetailBinding.bind(view)
 
-        fun bind(forecast: ForecastUI) = with(binding) {
+        fun bind(forecast: ForecastWeatherUI) = with(binding) {
             tvDayWeek.text = forecast.dayOfWeek
 
             Glide.with(itemView.context)
@@ -52,8 +52,8 @@ class DetailAdapter : RecyclerView.Adapter<DetailAdapter.DetailViewHolder>() {
 }
 
 class DetailDiffCallback(
-    private val oldList: List<ForecastUI>,
-    private val newList: List<ForecastUI>
+    private val oldList: List<ForecastWeatherUI>,
+    private val newList: List<ForecastWeatherUI>
 ) : DiffUtil.Callback() {
 
     override fun getOldListSize(): Int = oldList.size
