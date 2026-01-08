@@ -45,15 +45,17 @@ object WeatherRepository {
     }
 
     private suspend fun loadCacheFromDb() {
-        if (memoryCache.isNotEmpty()) {
-            Log.e("MainViewModel", "Кэш не пустой, БД загружена")
-            return
-        }
-
         val currentEntities = db.currentWeatherDao().getAllCities()
+        Log.e("MainViewModel", "loadCacheFromDb: найдено городов в БД = ${currentEntities.size}")
+
         for (currentEntity in currentEntities) {
             val forecastEntities =
                 db.forecastWeatherDao().getForCityForecast(currentEntity.cityName)
+
+            Log.e(
+                "MainViewModel",
+                "loadCacheFromDb: загрузка города ${currentEntity.cityName}, forecast = ${forecastEntities.size}"
+            )
 
             memoryCache[currentEntity.cityName] = CachedWeatherData(
                 current = currentEntityCacheMapper.fromEntityToCache(currentEntity),
@@ -63,16 +65,35 @@ object WeatherRepository {
                 )
             )
         }
+
+        Log.e("MainViewModel", "loadCacheFromDb: загрузка завершена")
+    }
+
+    suspend fun initCacheFromDb() {
+        Log.e("MainViewModel", "loadCacheFromDb: попытка загрузки кэша из БД")
+        loadCacheFromDb()
     }
 
     suspend fun getMemoryCities(): List<String> = cacheMutex.withLock {
-        loadCacheFromDb()
-        memoryCache.keys.toList()
+        Log.e("MainViewModel", "getMemoryCities: запрос списка городов")
+        val cities = memoryCache.keys.toList()
+        Log.e("MainViewModel", "getMemoryCities: найдено городов = ${cities.size}")
+
+        cities
     }
 
     suspend fun getCachedDetails(cityName: String): CachedWeatherData? =
         cacheMutex.withLock {
-            memoryCache[cityName]
+            val cached = memoryCache[cityName]
+
+            Log.e(
+                "MainViewModel",
+                "getCachedDetails: city=$cityName, " +
+                        "current=${cached?.current != null}, " +
+                        "forecast=${cached?.forecast != null}"
+            )
+
+            cached
         }
 
     suspend fun setCachedCurrent(
@@ -80,11 +101,18 @@ object WeatherRepository {
         dto: CurrentWeatherDTO
     ) = cacheMutex.withLock {
 
+        Log.e("MainViewModel", "setCachedCurrent: city=$cityName")
+
         val cache = currentDtoMapper.fromDtoToCache(dto)
 
         val existingEntity = db.currentWeatherDao().getForCityCurrent(cityName)
         val orderIndex = existingEntity?.orderIndex
             ?: (db.currentWeatherDao().getMaxIndex() ?: 0) + 1
+
+        Log.e(
+            "MainViewModel",
+            "setCachedCurrent: orderIndex=$orderIndex, existed=${existingEntity != null}"
+        )
 
         val entity = currentCacheEntityMapper.fromCacheToEntity(
             cache = cache,
@@ -95,12 +123,16 @@ object WeatherRepository {
 
         memoryCache[cityName] =
             (memoryCache[cityName] ?: CachedWeatherData()).copy(current = cache)
+
+        Log.e("MainViewModel", "setCachedCurrent: сохранено в memoryCache и БД")
     }
 
     suspend fun setCachedForecast(
         cityName: String,
         dto: ForecastWeatherDTO
     ) = cacheMutex.withLock {
+
+        Log.e("MainViewModel", "setCachedForecast: city=$cityName")
 
         val cache = forecastDtoMapper.fromDtoToCache(cityName, dto)
 
@@ -112,26 +144,46 @@ object WeatherRepository {
             )
         }
 
+        Log.e(
+            "MainViewModel",
+            "setCachedForecast: элементов прогноза = ${entities.size}"
+        )
+
         db.forecastWeatherDao().deleteForCityForecast(cityName)
         db.forecastWeatherDao().insert(entities)
 
         memoryCache[cityName] =
             (memoryCache[cityName] ?: CachedWeatherData()).copy(forecast = cache)
+
+        Log.e("MainViewModel", "setCachedForecast: прогноз обновлён")
     }
 
     suspend fun removeCity(cityName: String) = cacheMutex.withLock {
+        Log.e("MainViewModel", "removeCity: удаление города $cityName")
+
         memoryCache.remove(cityName)
         db.currentWeatherDao().deleteForCityCurrent(cityName)
         db.forecastWeatherDao().deleteForCityForecast(cityName)
     }
 
     suspend fun refreshForecast(cityName: String) {
+        Log.e("MainViewModel", "refreshForecast: запрос API для $cityName")
+
         val dto = RetrofitClient.weatherApi.getForecast(cityName)
         setCachedForecast(cityName, dto)
+
+        Log.e("MainViewModel", "refreshForecast: обновление завершено")
     }
 
     suspend fun getForecastCache(cityName: String): ForecastWeatherCache? =
         cacheMutex.withLock {
-            memoryCache[cityName]?.forecast
+            val forecast = memoryCache[cityName]?.forecast
+
+            Log.e(
+                "MainViewModel",
+                "getForecastCache: city=$cityName, exists=${forecast != null}"
+            )
+
+            forecast
         }
 }

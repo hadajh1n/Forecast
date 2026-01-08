@@ -11,8 +11,8 @@ import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
 import android.widget.ArrayAdapter
 import android.widget.AutoCompleteTextView
-import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
@@ -27,6 +27,7 @@ import com.example.forecast.ui.viewModel.CitiesState
 import com.example.forecast.ui.viewModel.MainUIState
 import com.example.forecast.ui.viewModel.MainViewModel
 import com.example.forecast.ui.viewModel.RefreshCityState
+import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.launch
 
 class CityFragment : Fragment() {
@@ -170,7 +171,7 @@ class CityFragment : Fragment() {
     private fun handleLoadingState() = with(binding) {
         progressBar.visibility = View.VISIBLE
         cvCity.visibility = View.GONE
-        errorContainer.visibility = View.GONE
+        cvError.visibility = View.GONE
         cvAddFirstCity.visibility = View.GONE
         btnAddCity.visibility = View.GONE
         swipeRefreshLayout.isEnabled = false
@@ -179,7 +180,7 @@ class CityFragment : Fragment() {
     private fun handleSuccessState(state: MainUIState.Success) = with(binding) {
         swipeRefreshLayout.isRefreshing = false
         progressBar.visibility = View.GONE
-        errorContainer.visibility = View.GONE
+        cvError.visibility = View.GONE
         cvCity.visibility = if (state.cities.isEmpty()) View.GONE else View.VISIBLE
         cvAddFirstCity.visibility = if (state.cities.isEmpty()) View.VISIBLE else View.GONE
         btnAddCity.visibility = View.VISIBLE
@@ -192,15 +193,24 @@ class CityFragment : Fragment() {
         progressBar.visibility = View.GONE
         cvCity.visibility = View.GONE
         btnAddCity.visibility = View.GONE
-        errorContainer.visibility = View.VISIBLE
+        cvError.visibility = View.VISIBLE
         cvAddFirstCity.visibility = View.GONE
         tvErrorLoadCities.text = state.message
         swipeRefreshLayout.isEnabled = false
     }
 
     private fun observeMessageError() {
-        viewModel.errorMessage.observe(viewLifecycleOwner) { message ->
-            Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+        viewModel.messageEvent.observe(viewLifecycleOwner) { event ->
+            event.getContentIfNotHandled()?.let { message ->
+                Snackbar.make(requireView(), message, Snackbar.LENGTH_LONG).apply {
+                    setBackgroundTint(ContextCompat.getColor(
+                        requireContext(),
+                        R.color.errorSnackbarPullToRefresh)
+                    )
+                    setTextColor(ContextCompat.getColor(requireContext(), android.R.color.white))
+                    show()
+                }
+            }
         }
     }
 
@@ -220,7 +230,7 @@ class CityFragment : Fragment() {
                 val city = cityAdapter.removeCity(position)
 
                 viewLifecycleOwner.lifecycleScope.launch {
-                    viewModel.requestRemoveCity(city.cityName, requireContext())
+                    viewModel.onSwipeRemove(city.cityName)
                 }
             }
         }

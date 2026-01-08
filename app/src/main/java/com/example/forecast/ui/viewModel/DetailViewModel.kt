@@ -63,11 +63,13 @@ class DetailViewModel : ViewModel() {
     private var restartRequiredRefreshSwipe = false
 
     private fun isCachedValidCurrent(timestamp: Long): Boolean {
+        Log.e("MainViewModel", "Проверка валидности current")
         return (System.currentTimeMillis() - timestamp) <
                 Constants.CacheLifetime.CACHE_VALIDITY_DURATION
     }
 
     private fun isCachedValidForecast(timestamp: Long): Boolean {
+        Log.e("MainViewModel", "Проверка валидности forecast")
         return (System.currentTimeMillis() - timestamp) <
                 Constants.CacheLifetime.CACHE_VALIDITY_DURATION
     }
@@ -75,7 +77,7 @@ class DetailViewModel : ViewModel() {
     fun initData(cityName: String, context: Context) {
         if (isLoadedStartData) return
 
-        Log.e("MainViewModel", "Запрос данных о деталях погоды")
+        Log.e("MainViewModel", "| ПОЛУЧЕНИЕ ДЕТАЛЕЙ ПОГОДЫ |\nЗапрос данных о деталях погоды для $cityName")
         isLoadedStartData = true
         loadCityDetail(cityName, context)
     }
@@ -87,7 +89,7 @@ class DetailViewModel : ViewModel() {
             Log.e("MainViewModel", "Запуск корутины loadCityDetail")
             _detailState.postValue(DetailUIState.Loading)
             loadCityDetailData(cityName, context)
-            Log.e("MainViewModel", "Корутина loadCityDetail завершена")
+            Log.e("MainViewModel", "Корутина loadCityDetail завершена\n| ПОЛУЧЕНИЕ ДЕТАЛЕЙ ПОГОДЫ ЗАВЕРШЕНО |")
         }
     }
 
@@ -101,7 +103,13 @@ class DetailViewModel : ViewModel() {
         val isForecastValid = cachedData?.forecast != null &&
                 isCachedValidForecast(cachedData.forecast.timestamp)
 
+        Log.e(
+            "MainViewModel",
+            "Кэш current=$isCurrentValid, forecast=$isForecastValid"
+        )
+
         if (isCurrentValid && isForecastValid) {
+            Log.e("MainViewModel", "Используется валидный кэш")
             _detailState.postValue(buildSuccessState(cachedData!!, context))
             return
         }
@@ -109,37 +117,32 @@ class DetailViewModel : ViewModel() {
         try {
             delay(3_000)
 
-            if (isCurrentValid && isForecastValid) {
-                _detailState.postValue(buildSuccessState(cachedData!!, context))
-                return
-            }
-
             if (!isCurrentValid) {
-                Log.e("MainViewModel", "Запрос API для current")
+                Log.e("MainViewModel", "Запрос API current для $cityName")
                 val currentDto = RetrofitClient.weatherApi.getCurrentWeather(cityName)
                 WeatherRepository.setCachedCurrent(cityName, currentDto)
             }
 
             if (!isForecastValid) {
-                Log.e("MainViewModel", "Запрос API для forecast")
+                Log.e("MainViewModel", "Запрос API forecast для $cityName")
                 val forecastDto = RetrofitClient.weatherApi.getForecast(cityName)
                 WeatherRepository.setCachedForecast(cityName, forecastDto)
             }
 
             val updatedData = WeatherRepository.getCachedDetails(cityName)
-                ?: return _detailState.postValue(
-                    DetailUIState.Error(context.getString(R.string.error_fetch_current_weather))
-                )
 
-            if (updatedData.current == null || updatedData.forecast == null) {
+            if (updatedData?.current == null || updatedData.forecast == null) {
+                Log.e("MainViewModel", "Ошибка: данные после API невалидны")
                 _detailState.postValue(
                     DetailUIState.Error(context.getString(R.string.error_fetch_current_weather))
                 )
                 return
             }
 
+            Log.e("MainViewModel", "Данные успешно обновлены")
             _detailState.postValue(buildSuccessState(updatedData, context))
         } catch (e: Exception) {
+            Log.e("MainViewModel", "Ошибка API загрузки деталей")
             _detailState.postValue(
                 DetailUIState.Error(context.getString(R.string.error_fetch_current_weather))
             )
@@ -147,16 +150,19 @@ class DetailViewModel : ViewModel() {
     }
 
     private fun buildSuccessState(
-        cached: WeatherRepository.CachedWeatherData,
+        cached: WeatherRepository.CachedWeatherData?,
         context: Context
     ): DetailUIState.Success {
 
+        Log.e("MainViewModel", "Формирование DetailUIState.Success")
+
         if (forecastUiMapper == null) {
+            Log.e("MainViewModel", "Инициализация ForecastWeatherUiMapper")
             forecastUiMapper = ForecastWeatherUiMapper(context)
         }
 
-        val currentUi = currentUiMapper.map(cached.current!!)
-        val forecastUi = forecastUiMapper!!.map(cached.forecast!!)
+        val currentUi = currentUiMapper.map(cached!!.current!!)
+        val forecastUi = forecastUiMapper!!.map(cached!!.forecast!!)
 
         return DetailUIState.Success(
             temperature = context.getString(
@@ -170,7 +176,7 @@ class DetailViewModel : ViewModel() {
 
     private fun onSwipeRefreshDetails(cityName: String, context: Context) {
         if (refreshSwipeJob?.isActive == true) {
-            Log.e("MainViewModel", "Refresh уже начался...")
+            Log.e("MainViewModel", "Swipe Refresh уже начался...")
             return
         }
 
@@ -178,11 +184,11 @@ class DetailViewModel : ViewModel() {
 
         refreshSwipeJob = viewModelScope.launch {
             try {
-                Log.e("MainViewModel", "Запуск корутины Refresh")
+                Log.e("MainViewModel", "| REFRESH SWIPE ДЕТАЛЕЙ |\nЗапуск корутины Refresh")
                 refreshDetailsSwipe(cityName, context)
-                Log.e("MainViewModel", "Корутина Refresh завершена")
+                Log.e("MainViewModel", "Корутина Refresh завершена\n| REFRESH SWIPE ДЕТАЛЕЙ ЗАВЕРШЕН |")
             } finally {
-                startRefreshBackground(cityName, context)
+//                startRefreshBackground(cityName, context)
                 _refreshState.value = RefreshDetailState.Standard
             }
         }
@@ -192,6 +198,8 @@ class DetailViewModel : ViewModel() {
         try {
             delay(7_000)
 
+            Log.e("MainViewModel", "Pull-to-refresh - Запрос API для деталей города $cityName")
+
             val currentDto = RetrofitClient.weatherApi.getCurrentWeather(cityName)
             WeatherRepository.setCachedCurrent(cityName, currentDto)
 
@@ -199,9 +207,7 @@ class DetailViewModel : ViewModel() {
             WeatherRepository.setCachedForecast(cityName, forecastDto)
 
             val updated = WeatherRepository.getCachedDetails(cityName)
-            if (updated?.current != null && updated.forecast != null) {
-                _detailState.postValue(buildSuccessState(updated, context))
-            }
+            _detailState.postValue(buildSuccessState(updated, context))
         } catch (e: Exception) {
             _messageEvent.postValue(Event(context.getString(R.string.error_pull_to_refresh)))
         } finally {
@@ -218,16 +224,21 @@ class DetailViewModel : ViewModel() {
     }
 
     private suspend fun startRefreshBackground(cityName: String, context: Context) {
-        while (true) {
-            delay(Constants.CacheLifetime.BACKGROUND_UPDATE_INTERVAL)
-            try {
-                val currentDto = RetrofitClient.weatherApi.getCurrentWeather(cityName)
-                WeatherRepository.setCachedCurrent(cityName, currentDto)
-                val forecastDto = RetrofitClient.weatherApi.getForecast(cityName)
-                WeatherRepository.setCachedForecast(cityName, forecastDto)
-            } catch (e: Exception) {
-                Log.e("MainViewModel", "Ошибка фонового обновления", e)
-            }
+        try {
+            Log.e("MainViewModel", "Фоновый refresh - Запрос API для деталей города $cityName")
+
+            val currentDto = RetrofitClient.weatherApi.getCurrentWeather(cityName)
+            WeatherRepository.setCachedCurrent(cityName, currentDto)
+
+            val forecastDto = RetrofitClient.weatherApi.getForecast(cityName)
+            WeatherRepository.setCachedForecast(cityName, forecastDto)
+
+            val updated = WeatherRepository.getCachedDetails(cityName)
+            _detailState.postValue(buildSuccessState(updated, context))
+        } catch (e: Exception) {
+            Log.e("MainViewModel", "Ошибка фонового refresh для деталей города $cityName")
+        } finally {
+            _refreshState.value = RefreshDetailState.Standard
         }
     }
 

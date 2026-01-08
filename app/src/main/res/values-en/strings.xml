@@ -10,12 +10,13 @@
     <string name="empty_city_list_message">The list of cities is empty. Click the button to add a city</string>
     <string name="retry_button">Repeat</string>
     <string name="error_city_already_added">City already added</string>
-    <string name="error_city_not_found">City not found or network issues</string>
+    <string name="error_city_add">City not added, no internet connection</string>
     <string name="error_fetch_current_weather">Failed to load current weather! Check the Internet</string>
     <string name="error_fetch_forecast">Failed to load forecast</string>
     <string name="unknown_city">Unknown city</string>
     <string name="error_loading_data">Error loading data</string>
     <string name="error_no_data">No data</string>
+    <string name="offline_mode">No internet connection!\nRetrieving saved data</string>
     <string name="error_pull_to_refresh">No internet connection</string>
     <string name="subscribe">Severe Weather Alerts</string>
     <string name="dangerous_weather_title">Warning! Dangerous weather</string>
