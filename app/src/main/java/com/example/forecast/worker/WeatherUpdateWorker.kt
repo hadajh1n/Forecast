@@ -12,10 +12,6 @@ class WeatherUpdateWorker(
     workerParams: WorkerParameters
 ) : CoroutineWorker(context, workerParams) {
 
-    companion object {
-        private const val TAG = "WeatherUpdateWorker"
-    }
-
     override suspend fun doWork(): Result {
         return try {
             val cities = WeatherRepository.getMemoryCities()
@@ -27,14 +23,15 @@ class WeatherUpdateWorker(
 
                     val forecast = RetrofitClient.weatherApi.getForecast(city)
                     WeatherRepository.setCachedForecast(city, forecast)
+                    Log.e("WeatherUpdateWorker", "Запрос API для города: $city")
                 } catch (e: Exception) {
-                    Log.e(TAG, "Ошибка обновления для $city", e)
+                    Log.e("WeatherUpdateWorker", "Ошибка обновления для города: $city")
                 }
             }
 
             Result.success()
         } catch (e: Exception) {
-            Log.e(TAG, "Ошибка выполнения фонового обновления", e)
+            Log.e("WeatherUpdateWorker", "Ошибка выполнения фонового обновления")
             Result.retry()
         }
     }

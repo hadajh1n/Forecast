@@ -6,7 +6,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.forecast.core.utils.Constants
+import com.example.forecast.core.utils.CacheConfig
 import com.example.forecast.R
 import com.example.forecast.core.utils.Event
 import com.example.forecast.data.repository.WeatherRepository
@@ -58,7 +58,6 @@ class MainViewModel : ViewModel() {
     private var loadCitiesJob: Job? = null
     private var addCitiesJob: Job? = null
     private var refreshSwipeJob: Job? = null
-    private var refreshBackgroundJob: Job? = null
     private var wasLoadingWhenPaused = false
     private var restartRequiredLoadCities = false
     private var restartRequiredRefreshSwipe = false
@@ -67,8 +66,7 @@ class MainViewModel : ViewModel() {
     private val mutex = Mutex()
 
     private fun isCachedValidCurrent(timestamp: Long): Boolean {
-        return (System.currentTimeMillis() - timestamp) <
-                Constants.CacheLifetime.CACHE_VALIDITY_DURATION
+        return (System.currentTimeMillis() - timestamp) < CacheConfig.CACHE_VALIDITY_DURATION_MS
     }
 
     fun initData(context: Context) {
@@ -259,42 +257,6 @@ class MainViewModel : ViewModel() {
         }
     }
 
-    private fun refreshBackground() {
-        if (refreshBackgroundJob?.isActive == true) return
-
-        refreshBackgroundJob = viewModelScope.launch {
-            Log.e("MainViewModel", "Запуск корутины refreshBackground")
-            startRefreshBackground()
-            Log.e("MainViewModel", "Корутина refreshBackground завершена")
-        }
-    }
-
-    private suspend fun startRefreshBackground() {
-        val cachedCities = WeatherRepository.getMemoryCities()
-        val cities = mutableListOf<CurrentWeatherUI>()
-
-        if (cachedCities.isEmpty()) {
-            _uiState.postValue(MainUIState.Success(emptyList()))
-            return
-        }
-
-        try {
-            for (city in cachedCities) {
-                Log.e("MainViewModel", "Фоновый refresh - Запрос API для города $city")
-                val currentDto = RetrofitClient.weatherApi.getCurrentWeather(city)
-                WeatherRepository.setCachedCurrent(city, currentDto)
-
-                WeatherRepository.getCachedDetails(city)?.current?.let {
-                    cities += currentUiMapper.map(it)
-                }
-            }
-
-            _uiState.postValue(MainUIState.Success(cities))
-        } catch (e: Exception) {
-            Log.e("MainViewModel", "Ошибка фонового refresh для городов")
-        }
-    }
-
     private fun cancelLoadingOnPause() {
         wasLoadingWhenPaused = true
 
@@ -350,9 +312,5 @@ class MainViewModel : ViewModel() {
 
     fun onSwipeRefresh(context: Context) {
         onSwipeRefreshCities(context)
-    }
-
-    fun onRefreshBackground() {
-//        refreshBackground()
     }
 }

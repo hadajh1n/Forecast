@@ -6,7 +6,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.forecast.core.utils.Constants
+import com.example.forecast.core.utils.CacheConfig
 import com.example.forecast.R
 import com.example.forecast.core.utils.Event
 import com.example.forecast.data.repository.WeatherRepository
@@ -57,21 +57,18 @@ class DetailViewModel : ViewModel() {
 
     private var loadCityDetailJob: Job? = null
     private var refreshSwipeJob: Job? = null
-    private var refreshBackgroundJob: Job? = null
     private var wasLoadingWhenPaused = false
     private var restartRequiredLoadCityDetail = false
     private var restartRequiredRefreshSwipe = false
 
     private fun isCachedValidCurrent(timestamp: Long): Boolean {
         Log.e("MainViewModel", "Проверка валидности current")
-        return (System.currentTimeMillis() - timestamp) <
-                Constants.CacheLifetime.CACHE_VALIDITY_DURATION
+        return (System.currentTimeMillis() - timestamp) < CacheConfig.CACHE_VALIDITY_DURATION_MS
     }
 
     private fun isCachedValidForecast(timestamp: Long): Boolean {
         Log.e("MainViewModel", "Проверка валидности forecast")
-        return (System.currentTimeMillis() - timestamp) <
-                Constants.CacheLifetime.CACHE_VALIDITY_DURATION
+        return (System.currentTimeMillis() - timestamp) < CacheConfig.CACHE_VALIDITY_DURATION_MS
     }
 
     fun initData(cityName: String, context: Context) {
@@ -215,33 +212,6 @@ class DetailViewModel : ViewModel() {
         }
     }
 
-    private fun refreshBackground(cityName: String, context: Context) {
-        if (refreshBackgroundJob?.isActive == true) return
-
-        refreshBackgroundJob = viewModelScope.launch {
-            startRefreshBackground(cityName, context)
-        }
-    }
-
-    private suspend fun startRefreshBackground(cityName: String, context: Context) {
-        try {
-            Log.e("MainViewModel", "Фоновый refresh - Запрос API для деталей города $cityName")
-
-            val currentDto = RetrofitClient.weatherApi.getCurrentWeather(cityName)
-            WeatherRepository.setCachedCurrent(cityName, currentDto)
-
-            val forecastDto = RetrofitClient.weatherApi.getForecast(cityName)
-            WeatherRepository.setCachedForecast(cityName, forecastDto)
-
-            val updated = WeatherRepository.getCachedDetails(cityName)
-            _detailState.postValue(buildSuccessState(updated, context))
-        } catch (e: Exception) {
-            Log.e("MainViewModel", "Ошибка фонового refresh для деталей города $cityName")
-        } finally {
-            _refreshState.value = RefreshDetailState.Standard
-        }
-    }
-
     private fun cancelLoadingOnPause() {
         wasLoadingWhenPaused = true
 
@@ -288,10 +258,6 @@ class DetailViewModel : ViewModel() {
 
     fun onSwipeRefresh(cityName: String, context: Context) {
         onSwipeRefreshDetails(cityName, context)
-    }
-
-    fun onRefreshBackground(cityName: String, context: Context) {
-//        refreshBackground(cityName, context)
     }
 
     fun onRetryButton(cityName: String, context: Context) {

@@ -59,11 +59,6 @@ class DetailFragment : Fragment() {
         viewModel.initData(cityName, requireContext())
     }
 
-    override fun onStart() {
-        super.onStart()
-        viewModel.onRefreshBackground(cityName, requireActivity().applicationContext)
-    }
-
     override fun onStop() {
         super.onStop()
         viewModel.onStopFragment(requireActivity().isChangingConfigurations)

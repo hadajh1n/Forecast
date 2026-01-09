@@ -81,11 +81,6 @@ class CityFragment : Fragment() {
         viewModel.initData(requireContext())
     }
 
-    override fun onStart() {
-        super.onStart()
-        viewModel.onRefreshBackground()
-    }
-
     override fun onStop() {
         super.onStop()
         viewModel.onStopFragment(requireActivity().isChangingConfigurations)
