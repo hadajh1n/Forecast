@@ -76,7 +76,6 @@ class CityFragment : Fragment() {
         setupItemTouchHelper()
         setupAddCityCardView()
         setupAddCityButton()
-        setupRetryButton()
         restoreDialogState(savedInstanceState)
 
         viewModel.initData(requireContext())
@@ -151,9 +150,6 @@ class CityFragment : Fragment() {
                     cityAdapter.showLoadingFooter()
                     swipeRefreshLayout.isEnabled = false
                 }
-                CitiesState.Error -> {
-                    cityAdapter.hideLoadingFooter()
-                }
             }
         }
     }
@@ -163,7 +159,6 @@ class CityFragment : Fragment() {
             when (state) {
                 is MainUIState.Loading -> handleLoadingState()
                 is MainUIState.Success -> handleSuccessState(state)
-                is MainUIState.Error -> handleErrorState(state)
             }
         }
     }
@@ -186,17 +181,6 @@ class CityFragment : Fragment() {
         btnAddCity.visibility = View.VISIBLE
         cityAdapter.updateCities(state.cities)
         swipeRefreshLayout.isEnabled = if (state.cities.isEmpty()) false else true
-    }
-
-    private fun handleErrorState(state: MainUIState.Error) = with(binding) {
-        swipeRefreshLayout.isRefreshing = false
-        progressBar.visibility = View.GONE
-        cvCity.visibility = View.GONE
-        btnAddCity.visibility = View.GONE
-        cvError.visibility = View.VISIBLE
-        cvAddFirstCity.visibility = View.GONE
-        tvErrorLoadCities.text = state.message
-        swipeRefreshLayout.isEnabled = false
     }
 
     private fun observeMessageError() {
@@ -247,12 +231,6 @@ class CityFragment : Fragment() {
     private fun setupAddCityButton() {
         binding.btnAddCity.setOnClickListener {
             showAddCityDialog()
-        }
-    }
-
-    private fun setupRetryButton() {
-        binding.btnRetry.setOnClickListener {
-            viewModel.onRetryButton(requireContext())
         }
     }
 

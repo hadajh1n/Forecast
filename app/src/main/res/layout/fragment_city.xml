@@ -105,31 +105,5 @@
         app:layout_constraintEnd_toEndOf="parent"
         tools:visibility="visible">
 
-        <LinearLayout
-            android:id="@+id/errorContainer"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="@color/errorContainer"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:padding="16dp">
-
-            <TextView
-                android:id="@+id/tvErrorLoadCities"
-                style="@style/tvErrorLoadCities"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/error_load_cities" />
-
-            <Button
-                android:id="@+id/btnRetry"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:backgroundTint="@color/btnRetry"
-                android:text="@string/retry_button"
-                android:textColor="@color/white" />
-        </LinearLayout>
-
     </androidx.cardview.widget.CardView>
 </androidx.constraintlayout.widget.ConstraintLayout>

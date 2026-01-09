@@ -23,14 +23,12 @@ sealed class MainUIState {
 
     object Loading : MainUIState()
     data class Success(val cities: List<CurrentWeatherUI>) : MainUIState()
-    data class Error(val message: String) : MainUIState()
 }
 
 sealed class CitiesState {
 
-    object Standard : CitiesState()
     object Loading : CitiesState()
-    object Error : CitiesState()
+    object Standard : CitiesState()
 }
 
 sealed class RefreshCityState {
@@ -56,7 +54,6 @@ class MainViewModel : ViewModel() {
     val messageEvent: LiveData<Event<String>> get() = _messageEvent
 
     private var isLoadedStartData = false
-    private var isOfflineMode = false
 
     private var loadCitiesJob: Job? = null
     private var addCitiesJob: Job? = null
@@ -136,18 +133,21 @@ class MainViewModel : ViewModel() {
 
     private fun addNewCity(cityName: String, context: Context) {
         addCitiesJob = viewModelScope.launch {
-            Log.e("MainViewModel", "| ДОБАВЛЕНИЕ НОВОГО ГОРОДА : $cityName |")
-            Log.e("MainViewModel", "+1 город к загрузке: $cityName")
-            activeAddCities++
-            Log.e("MainViewModel", "Запуск корутины addCity")
-            addCity(cityName, context)
-            Log.e("MainViewModel", "Корутина addCity завершена\n| ДОБАВЛЕНИЕ НОВОГО ГОРОДА ЗАВЕРШЕНО |")
-            Log.e("MainViewModel", "-1 город к загрузке: $cityName")
-            activeAddCities--
-            _citiesState.postValue(
-                if (activeAddCities > 0) CitiesState.Loading else CitiesState.Standard
-            )
-            Log.e("MainViewModel", "Количество городов к загрузке: $activeAddCities")
+            try {
+                Log.e("MainViewModel", "| ДОБАВЛЕНИЕ НОВОГО ГОРОДА : $cityName |")
+                Log.e("MainViewModel", "+1 город к загрузке: $cityName")
+                activeAddCities++
+                Log.e("MainViewModel", "Запуск корутины addCity")
+                addCity(cityName, context)
+                Log.e("MainViewModel", "Корутина addCity завершена\n| ДОБАВЛЕНИЕ НОВОГО ГОРОДА ЗАВЕРШЕНО |")
+            } finally {
+                Log.e("MainViewModel", "-1 город к загрузке: $cityName")
+                activeAddCities--
+                _citiesState.postValue(
+                    if (activeAddCities > 0) CitiesState.Loading else CitiesState.Standard
+                )
+                Log.e("MainViewModel", "Количество городов к загрузке: $activeAddCities")
+            }
         }
     }
 
@@ -177,6 +177,12 @@ class MainViewModel : ViewModel() {
         } catch (e: Exception) {
             Log.e("MainViewModel", "Ошибка запроса API для нового города")
             _messageEvent.postValue(Event(context.getString(R.string.error_city_add)))
+
+            val cities = WeatherRepository.getMemoryCities()
+                .mapNotNull { WeatherRepository.getCachedDetails(it)?.current }
+                .map(currentUiMapper::map)
+
+            _uiState.postValue(MainUIState.Success(cities))
             addCitiesJob?.cancel()
             addCitiesJob = null
         }
@@ -286,19 +292,6 @@ class MainViewModel : ViewModel() {
             _uiState.postValue(MainUIState.Success(cities))
         } catch (e: Exception) {
             Log.e("MainViewModel", "Ошибка фонового refresh для городов")
-            if (cachedCities.isNotEmpty()) {
-                Log.e("MainViewModel", "Кэш есть, отображаем")
-                _uiState.postValue(
-                    MainUIState.Success(
-                        cachedCities.mapNotNull {
-                            WeatherRepository.getCachedDetails(it)?.current?.let(
-                                currentUiMapper::map
-                            )
-                        }
-                    )
-                )
-            }
-            isOfflineMode = true
         }
     }
 
@@ -361,9 +354,5 @@ class MainViewModel : ViewModel() {
 
     fun onRefreshBackground() {
 //        refreshBackground()
-    }
-
-    fun onRetryButton(context: Context) {
-        loadCities(context)
     }
 }
