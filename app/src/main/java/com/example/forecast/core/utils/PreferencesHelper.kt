@@ -6,10 +6,10 @@ import android.content.SharedPreferences
 object PreferencesHelper {
 
     private const val PREF_NAME = "weather_prefs"
+    private const val KEY_PREFIX = "dangerous_weather_switch_"
 
-    private fun getPrefs(context: Context): SharedPreferences {
-        return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
-    }
+    private fun getPrefs(context: Context): SharedPreferences =
+        context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
 
     fun saveDangerousWeatherEnabled(
         context: Context,
@@ -17,12 +17,12 @@ object PreferencesHelper {
         isEnabled: Boolean
     ) {
         getPrefs(context).edit()
-            .putBoolean("dangerous_weather_switch_$cityName", isEnabled)
+            .putBoolean(KEY_PREFIX + cityName, isEnabled)
             .apply()
     }
 
     fun isDangerousWeatherEnabled(context: Context, cityName: String): Boolean {
         return getPrefs(context)
-            .getBoolean("dangerous_weather_switch_$cityName", false)
+            .getBoolean(KEY_PREFIX + cityName, false)
     }
 }

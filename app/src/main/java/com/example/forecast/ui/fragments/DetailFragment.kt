@@ -1,6 +1,7 @@
 package com.example.forecast.ui.fragments
 
 import android.os.Bundle
+import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
@@ -9,16 +10,20 @@ import androidx.core.content.ContextCompat
 import com.example.forecast.ui.adapter.DetailAdapter
 import com.example.forecast.ui.viewModel.DetailViewModel
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.navArgs
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.example.forecast.R
+import com.example.forecast.core.utils.DangerousWeatherChecker
 import com.example.forecast.core.utils.NotificationHelper
 import com.example.forecast.core.utils.PreferencesHelper
+import com.example.forecast.core.utils.scheduleImmediateNotification
 import com.example.forecast.databinding.FragmentDetailBinding
 import com.example.forecast.ui.viewModel.DetailUIState
 import com.example.forecast.ui.viewModel.RefreshDetailState
 import com.google.android.material.snackbar.Snackbar
+import kotlinx.coroutines.launch
 
 class DetailFragment : Fragment() {
 
@@ -106,7 +111,42 @@ class DetailFragment : Fragment() {
 
     private fun handleDangerousWeatherSwitchChange() {
         binding.switchDangerousWeather.setOnCheckedChangeListener { _, isChecked ->
-            PreferencesHelper.saveDangerousWeatherEnabled(requireContext(), cityName, isChecked)
+
+            Log.d(
+                "DangerousWeather",
+                "Переключатель уведомлений изменён: город=$cityName, включено=$isChecked"
+            )
+
+            PreferencesHelper.saveDangerousWeatherEnabled(
+                requireContext(),
+                cityName,
+                isChecked
+            )
+
+            if (isChecked) {
+                lifecycleScope.launch {
+                    Log.d("DangerousWeather", "Запрос предупреждений на завтра")
+
+                    val warnings =
+                        DangerousWeatherChecker.getTomorrowDangerWarnings(cityName)
+
+                    if (warnings.isNotEmpty()) {
+                        Log.d(
+                            "DangerousWeather",
+                            "Обнаружена опасная погода, предупреждений: ${warnings.size}"
+                        )
+
+                        scheduleImmediateNotification(
+                            requireContext(),
+                            "Опасная погода завтра в $cityName",
+                            warnings.joinToString(" • "),
+                            cityName
+                        )
+                    } else {
+                        Log.d("DangerousWeather", "Опасных погодных условий не найдено")
+                    }
+                }
+            }
         }
     }
 

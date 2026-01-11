@@ -185,7 +185,6 @@ class DetailViewModel : ViewModel() {
                 refreshDetailsSwipe(cityName, context)
                 Log.e("MainViewModel", "Корутина Refresh завершена\n| REFRESH SWIPE ДЕТАЛЕЙ ЗАВЕРШЕН |")
             } finally {
-//                startRefreshBackground(cityName, context)
                 _refreshState.value = RefreshDetailState.Standard
             }
         }

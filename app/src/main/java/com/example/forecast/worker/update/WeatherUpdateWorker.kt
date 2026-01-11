@@ -1,4 +1,4 @@
-package com.example.forecast.worker
+package com.example.forecast.worker.update
 
 import android.content.Context
 import android.util.Log

@@ -6,8 +6,7 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.example.forecast.core.utils.CacheConfig
-import com.example.forecast.worker.DangerousWeatherWorker
-import com.example.forecast.worker.WeatherUpdateWorker
+import com.example.forecast.worker.update.WeatherUpdateWorker
 import java.util.concurrent.TimeUnit
 
 class WeatherApp : Application() {
@@ -22,7 +21,6 @@ class WeatherApp : Application() {
 
         Log.e("WeatherUpdateWorker", "Запуск фонового обновления")
         setupBackgroundWeatherUpdates()
-        setupDangerousWeatherWorker()
     }
 
     private fun setupBackgroundWeatherUpdates() {
@@ -32,18 +30,6 @@ class WeatherApp : Application() {
 
         WorkManager.getInstance(this@WeatherApp).enqueueUniquePeriodicWork(
             "WeatherAutoUpdate",
-            ExistingPeriodicWorkPolicy.KEEP,
-            workRequest
-        )
-    }
-
-    private fun setupDangerousWeatherWorker() {
-        val workRequest = PeriodicWorkRequestBuilder<DangerousWeatherWorker>(
-            24, TimeUnit.HOURS
-        ).build()
-
-        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-            "DangerousWeatherCheck",
             ExistingPeriodicWorkPolicy.KEEP,
             workRequest
         )

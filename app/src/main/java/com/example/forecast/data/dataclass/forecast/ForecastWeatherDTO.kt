@@ -9,10 +9,19 @@ data class ForecastWeatherDTO(
 data class ForecastItemDTO(
     val dt: Long,
     val main: ForecastMainDTO,
-    val weather: List<WeatherDTO>
+    val weather: List<WeatherDTO>,
+    val wind: WindDTO? = null,
+    val rain: RainDTO? = null,
+    val snow: SnowDTO? = null
 )
 
 data class ForecastMainDTO(
     val temp_max: Float,
     val temp_min: Float
 )
+
+data class WindDTO(val speed: Float? = null)
+
+data class RainDTO(val `3h`: Float? = null)
+
+data class SnowDTO(val `3h`: Float? = null)

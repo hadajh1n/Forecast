@@ -165,25 +165,4 @@ object WeatherRepository {
         db.currentWeatherDao().deleteForCityCurrent(cityName)
         db.forecastWeatherDao().deleteForCityForecast(cityName)
     }
-
-    suspend fun refreshForecast(cityName: String) {
-        Log.e("MainViewModel", "refreshForecast: запрос API для $cityName")
-
-        val dto = RetrofitClient.weatherApi.getForecast(cityName)
-        setCachedForecast(cityName, dto)
-
-        Log.e("MainViewModel", "refreshForecast: обновление завершено")
-    }
-
-    suspend fun getForecastCache(cityName: String): ForecastWeatherCache? =
-        cacheMutex.withLock {
-            val forecast = memoryCache[cityName]?.forecast
-
-            Log.e(
-                "MainViewModel",
-                "getForecastCache: city=$cityName, exists=${forecast != null}"
-            )
-
-            forecast
-        }
 }
