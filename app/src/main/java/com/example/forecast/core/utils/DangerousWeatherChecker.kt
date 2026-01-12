@@ -1,20 +1,26 @@
 package com.example.forecast.core.utils
 
-import android.util.Log
+import android.content.Context
+import com.example.forecast.R
 import com.example.forecast.network.retrofit.RetrofitClient
 import java.util.Calendar
 
 object DangerousWeatherChecker {
 
-    suspend fun getTomorrowDangerWarnings(cityName: String): List<String> {
+    private const val SECONDS_IN_DAY = 24 * 60 * 60
+    private const val MILLIS_IN_SECOND = 1000
+    private const val VERY_LOW_TEMP = -30f
+    private const val VERY_HIGH_TEMP = 30f
+    private const val STRONG_SNOW_MM = 10f
+    private const val STRONG_RAIN_MM = 20f
+    private const val STRONG_WIND_MS = 15f
+
+    suspend fun getTomorrowDangerWarnings(context: Context, cityName: String): List<String> {
         val forecast = try {
             RetrofitClient.weatherApi.getForecast(cityName)
         } catch (e: Exception) {
-            Log.e("DangerousWeather", "Ошибка загрузки прогноза", e)
             return emptyList()
         }
-
-        Log.d("DangerousWeather", "Прогноз успешно загружен, элементов: ${forecast.list.size}")
 
         val tomorrowStart = Calendar.getInstance().apply {
             add(Calendar.DAY_OF_YEAR, 1)
@@ -22,9 +28,9 @@ object DangerousWeatherChecker {
             set(Calendar.MINUTE, 0)
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
-        }.timeInMillis / 1000
+        }.timeInMillis / MILLIS_IN_SECOND
 
-        val tomorrowEnd = tomorrowStart + 86399
+        val tomorrowEnd = tomorrowStart + SECONDS_IN_DAY - 1
 
         val tomorrowItems = forecast.list.filter { it.dt in tomorrowStart..tomorrowEnd }
 
@@ -38,23 +44,22 @@ object DangerousWeatherChecker {
 
         val warnings = mutableListOf<String>()
 
-        if (minTemp <= -30f)   warnings.add("Очень низкая температура: ${minTemp.toInt()}°C")
-        if (maxTemp >= 30f)    warnings.add("Очень высокая температура: ${maxTemp.toInt()}°C")
-        if (totalSnow >= 10f)  warnings.add("Сильный снегопад: ${totalSnow.toInt()} мм")
-        if (totalRain >= 20f)  warnings.add("Сильный дождь: ${totalRain.toInt()} мм")
-        if (maxWind >= 15f)    warnings.add("Сильный ветер: ${maxWind.toInt()} м/с")
+        if (minTemp <= VERY_LOW_TEMP) {
+            warnings += context.getString(R.string.very_low_temperature_warning, minTemp.toInt())
+        }
+        if (maxTemp >= VERY_HIGH_TEMP) {
+            warnings += context.getString(R.string.very_high_temperature_warning, maxTemp.toInt())
+        }
+        if (totalSnow >= STRONG_SNOW_MM) {
+            warnings += context.getString(R.string.strong_snow_warning, totalSnow.toInt())
+        }
+        if (totalRain >= STRONG_RAIN_MM) {
+            warnings += context.getString(R.string.strong_rain_warning, totalRain.toInt())
+        }
+        if (maxWind >= STRONG_WIND_MS) {
+            warnings += context.getString(R.string.strong_wind_warning, maxWind.toInt())
+        }
 
-        Log.d(
-            "DangerousWeather",
-            "Результаты анализа: " +
-                    "мин. температура=$minTemp, " +
-                    "макс. температура=$maxTemp, " +
-                    "ветер=$maxWind, " +
-                    "дождь=$totalRain, " +
-                    "снег=$totalSnow"
-        )
-
-        Log.d("DangerousWeather", "Найдено предупреждений: ${warnings.size}")
         return warnings
     }
 }

@@ -1,16 +1,17 @@
 package com.example.forecast.core.app
 
 import android.app.Application
-import android.util.Log
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
-import com.example.forecast.core.utils.CacheConfig
-import com.example.forecast.worker.update.WeatherUpdateWorker
+import com.example.forecast.worker.WeatherUpdateWorker
 import java.util.concurrent.TimeUnit
 
 class WeatherApp : Application() {
+
     companion object {
+        const val BACKGROUND_UPDATE_INTERVAL_HOURS = 3L
+
         lateinit var instance: WeatherApp
             private set
     }
@@ -19,13 +20,12 @@ class WeatherApp : Application() {
         super.onCreate()
         instance = this@WeatherApp
 
-        Log.e("WeatherUpdateWorker", "Запуск фонового обновления")
         setupBackgroundWeatherUpdates()
     }
 
     private fun setupBackgroundWeatherUpdates() {
         val workRequest = PeriodicWorkRequestBuilder<WeatherUpdateWorker>(
-            CacheConfig.BACKGROUND_UPDATE_INTERVAL_HOURS, TimeUnit.HOURS
+            BACKGROUND_UPDATE_INTERVAL_HOURS, TimeUnit.HOURS
         ).build()
 
         WorkManager.getInstance(this@WeatherApp).enqueueUniquePeriodicWork(

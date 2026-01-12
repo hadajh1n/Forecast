@@ -1,34 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Forecast</string>
-    // Dialog
+    <string name="app_name">Weather Forecast</string>
+    <string name="add_first_city">Add your first city</string>
+    <string name="offline_mode">No internet connection!\nShowing cached data</string>
+    <string name="error_city_already_added">This city is already added</string>
+    <string name="error_city_add">Couldn\'t add city — no internet connection</string>
+    <string name="error_pull_to_refresh">No internet connection</string>
+    <string name="error_fetch_details_weather">Failed to load data!\nCheck your internet connection</string>
+    <string name="temperature_format">%d°C</string>
     <string name="add_city_dialog_title">Add City</string>
     <string name="add_city_input_hint">Enter city name</string>
     <string name="cancel_button">Cancel</string>
-    // Error
-    <string name="error_load_cities">Failed to load cities! Check the Internet</string>
-    <string name="empty_city_list_message">The list of cities is empty. Click the button to add a city</string>
-    <string name="retry_button">Repeat</string>
-    <string name="error_city_already_added">City already added</string>
-    <string name="error_city_add">City not added, no internet connection</string>
-    <string name="error_fetch_current_weather">Failed to load current weather! Check the Internet</string>
-    <string name="error_fetch_forecast">Failed to load forecast</string>
     <string name="unknown_city">Unknown city</string>
-    <string name="error_loading_data">Error loading data</string>
-    <string name="error_no_data">No data</string>
-    <string name="offline_mode">No internet connection!\nRetrieving saved data</string>
-    <string name="error_pull_to_refresh">No internet connection</string>
-    <string name="subscribe">Severe Weather Alerts</string>
-    <string name="dangerous_weather_title">Warning! Dangerous weather</string>
-    <string name="dangerous_weather_message">In the city %1$s: %2$s</string>
-    <string name="low_temperature_warning">Low temperature: %1$d°C</string>
-    <string name="unknown_event">Unknown event</string>
-    <string name="heat_warning">Extreme heat: %1$d°C</string>
-    <string name="strong_wind_warning">Strong wind: %1$d m/s</string>
-    <string name="natural_phenomenon">Natural phenomenon: %1$s</string>
-
-    // Temperature Format
-    <string name="temperature_format">%d°C</string>
-    // Empty list city
-    <string name="add_first_city">Add your first city</string>
+    <string name="retry_button">Retry</string>
+    <string name="subscribe">Severe weather notifications</string>
+    <string name="dangerous_weather_tomorrow_title">Dangerous weather tomorrow in %s</string>
+    <string name="very_low_temperature_warning">Very low temperature: %d°C</string>
+    <string name="very_high_temperature_warning">Very high temperature: %d°C</string>
+    <string name="strong_snow_warning">Heavy snowfall: %d mm</string>
+    <string name="strong_rain_warning">Heavy rain: %d mm</string>
+    <string name="strong_wind_warning">Strong wind: %d m/s</string>
 </resources>

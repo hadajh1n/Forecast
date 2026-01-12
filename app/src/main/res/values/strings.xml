@@ -1,38 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Прогноз погоды</string>
-    // Api ключ
     <string name="weather_api_key" translatable="false">3a40caaed30624dd3ed13790e371b4bd</string>
-    // Диалоговое окно
+    <string name="add_first_city">Добавьте свой первый город</string>
+    <string name="retry_button">Повторить</string>
+    <string name="offline_mode">Нет подключения к интернету!\nВывод сохраненных данных</string>
+    <string name="error_city_already_added">Город уже добавлен</string>
+    <string name="error_city_add">Город не добавлен, нет подключения к Интернету</string>
+    <string name="error_pull_to_refresh">Нет подключения к Интернету</string>
+    <string name="error_fetch_details_weather">Не удалось загрузить данные!\nПроверьте наличие Интернета</string>
+    <string name="temperature_format">%d°C</string>
     <string name="add_city_dialog_title">Добавить город</string>
     <string name="add_city_input_hint">Введите название города</string>
     <string name="cancel_button">Отмена</string>
-    // Ошибки
-    <string name="error_load_cities">Не удалось загрузить список городов! Проверьте наличие Интернета</string>
-    <string name="empty_city_list_message">Список городов пуст. Нажмите на кнопку, чтобы добавить город</string>
-    <string name="retry_button">Повторить</string>
-    <string name="error_city_already_added">Город уже добавлен</string>
-    <string name="error_city_add">Город не добавлен,  нет подключения к Интернету</string>
-    <string name="error_fetch_current_weather">Не удалось загрузить текущую погоду! Проверьте наличие Интернета</string>
-    <string name="error_fetch_forecast">Не удалось загрузить прогноз</string>
     <string name="unknown_city">Неизвестный город</string>
-    <string name="error_loading_data">Ошибка загрузки данных</string>
-    <string name="error_no_data">Нет данных</string>
-    <string name="offline_mode">Нет подключения к интернету!\nВывод сохраненных данных</string>
-    <string name="error_pull_to_refresh">Нет подключения к Интернету</string>
     <string name="subscribe">Уведомления об опасных погодных условиях</string>
-    <string name="dangerous_weather_title">Внимание! Опасная погода</string>
-    <string name="dangerous_weather_message">В городе %1$s: %2$s</string>
-    <string name="low_temperature_warning">Низкая температура: %1$d°C</string>
-    <string name="unknown_event">Неизвестное событие</string>
-    <string name="heat_warning">Аномальная жара: %1$d°C</string>
-    <string name="strong_wind_warning">Сильный ветер: %1$d м/с</string>
-    <string name="natural_phenomenon">Стихийное явление: %1$s</string>
-
-    // Формат температуры
-    <string name="temperature_format">%d°C</string>
-    // Пустой список городов
-    <string name="add_first_city">Добавьте свой первый город</string>
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="dangerous_weather_tomorrow_title">Опасная погода завтра в %s</string>
+    <string name="very_low_temperature_warning">Очень низкая температура: %d°C</string>
+    <string name="very_high_temperature_warning">Очень высокая температура: %d°C</string>
+    <string name="strong_snow_warning">Сильный снегопад: %d мм</string>
+    <string name="strong_rain_warning">Сильный дождь: %d мм</string>
+    <string name="strong_wind_warning">Сильный ветер: %d м/с</string>
 </resources>

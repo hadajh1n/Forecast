@@ -1,4 +1,4 @@
-package com.example.forecast.worker.update
+package com.example.forecast.worker
 
 import android.content.Context
 import android.util.Log
@@ -23,7 +23,6 @@ class WeatherUpdateWorker(
 
                     val forecast = RetrofitClient.weatherApi.getForecast(city)
                     WeatherRepository.setCachedForecast(city, forecast)
-                    Log.e("WeatherUpdateWorker", "Запрос API для города: $city")
                 } catch (e: Exception) {
                     Log.e("WeatherUpdateWorker", "Ошибка обновления для города: $city")
                 }
@@ -31,7 +30,6 @@ class WeatherUpdateWorker(
 
             Result.success()
         } catch (e: Exception) {
-            Log.e("WeatherUpdateWorker", "Ошибка выполнения фонового обновления")
             Result.retry()
         }
     }

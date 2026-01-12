@@ -13,10 +13,14 @@ import kotlin.math.round
 
 class ForecastWeatherUiMapper(private val context: Context) {
 
+    companion object {
+        private const val DAYS_TO_SHOW = 5
+    }
+
     fun map(cache: ForecastWeatherCache): List<ForecastWeatherUI> {
         val groupedByDay = groupByDay(cache.items)
         return groupedByDay
-            .take(5)
+            .take(DAYS_TO_SHOW)
             .map { dayItem ->
                 ForecastWeatherUI(
                     dayOfWeek = formatDayOfWeek(dayItem.dt),

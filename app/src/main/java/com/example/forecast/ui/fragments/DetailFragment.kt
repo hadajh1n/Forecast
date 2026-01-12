@@ -1,11 +1,12 @@
 package com.example.forecast.ui.fragments
 
 import android.os.Bundle
-import android.util.Log
+import android.view.Gravity
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
 import androidx.core.content.ContextCompat
 import com.example.forecast.ui.adapter.DetailAdapter
 import com.example.forecast.ui.viewModel.DetailViewModel
@@ -18,7 +19,7 @@ import com.example.forecast.R
 import com.example.forecast.core.utils.DangerousWeatherChecker
 import com.example.forecast.core.utils.NotificationHelper
 import com.example.forecast.core.utils.PreferencesHelper
-import com.example.forecast.core.utils.scheduleImmediateNotification
+import com.example.forecast.alarm.scheduleImmediateNotification
 import com.example.forecast.databinding.FragmentDetailBinding
 import com.example.forecast.ui.viewModel.DetailUIState
 import com.example.forecast.ui.viewModel.RefreshDetailState
@@ -111,12 +112,6 @@ class DetailFragment : Fragment() {
 
     private fun handleDangerousWeatherSwitchChange() {
         binding.switchDangerousWeather.setOnCheckedChangeListener { _, isChecked ->
-
-            Log.d(
-                "DangerousWeather",
-                "Переключатель уведомлений изменён: город=$cityName, включено=$isChecked"
-            )
-
             PreferencesHelper.saveDangerousWeatherEnabled(
                 requireContext(),
                 cityName,
@@ -125,25 +120,22 @@ class DetailFragment : Fragment() {
 
             if (isChecked) {
                 lifecycleScope.launch {
-                    Log.d("DangerousWeather", "Запрос предупреждений на завтра")
-
                     val warnings =
-                        DangerousWeatherChecker.getTomorrowDangerWarnings(cityName)
-
-                    if (warnings.isNotEmpty()) {
-                        Log.d(
-                            "DangerousWeather",
-                            "Обнаружена опасная погода, предупреждений: ${warnings.size}"
+                        DangerousWeatherChecker.getTomorrowDangerWarnings(
+                            requireContext(),
+                            cityName
                         )
 
+                    if (warnings.isNotEmpty()) {
                         scheduleImmediateNotification(
                             requireContext(),
-                            "Опасная погода завтра в $cityName",
+                            requireContext().getString(
+                                R.string.dangerous_weather_tomorrow_title,
+                                cityName
+                            ),
                             warnings.joinToString(" • "),
                             cityName
                         )
-                    } else {
-                        Log.d("DangerousWeather", "Опасных погодных условий не найдено")
                     }
                 }
             }
@@ -153,17 +145,46 @@ class DetailFragment : Fragment() {
     private fun observeMessageEvents() {
         viewModel.messageEvent.observe(viewLifecycleOwner) { event ->
             event.getContentIfNotHandled()?.let { message ->
-                 Snackbar.make(binding.tvCity, message, Snackbar.LENGTH_LONG)
-                    .setAnchorView(binding.tvCity)
-                    .setBackgroundTint(ContextCompat.getColor(
+
+                val snackbar = Snackbar.make(
+                    binding.tvCity,
+                    message,
+                    Snackbar.LENGTH_LONG
+                )
+
+                snackbar.setAnchorView(binding.tvCity)
+
+                snackbar.setBackgroundTint(
+                    ContextCompat.getColor(
                         requireContext(),
-                        R.color.errorSnackbarPullToRefresh)
+                        R.color.errorSnackbarPullToRefresh
                     )
-                    .setTextColor(ContextCompat.getColor(requireContext(), android.R.color.white))
-                    .show()
+                )
+
+                snackbar.setTextColor(
+                    ContextCompat.getColor(
+                        requireContext(),
+                        android.R.color.white
+                    )
+                )
+
+                val snackbarView = snackbar.view
+                val textView =
+                    snackbarView.findViewById<TextView>(
+                        com.google.android.material.R.id.snackbar_text
+                    )
+
+                textView.apply {
+                    textAlignment = View.TEXT_ALIGNMENT_CENTER
+                    gravity = Gravity.CENTER
+                    maxLines = 3
+                }
+
+                snackbar.show()
             }
         }
     }
+
 
     private fun setupRecyclerView() = with(binding) {
         rvWeather.adapter = detailAdapter

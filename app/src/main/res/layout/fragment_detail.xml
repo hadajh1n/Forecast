@@ -137,7 +137,7 @@
                 style="@style/tvErrorLoadCities"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/error_load_cities" />
+                android:text="@string/error_fetch_details_weather" />
 
             <Button
                 android:id="@+id/btnRetry"

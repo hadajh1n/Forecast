@@ -1,12 +1,11 @@
 package com.example.forecast.ui.viewModel
 
 import android.content.Context
-import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.forecast.core.utils.CacheConfig
+import com.example.forecast.core.utils.Constants
 import com.example.forecast.R
 import com.example.forecast.core.utils.Event
 import com.example.forecast.data.repository.WeatherRepository
@@ -15,19 +14,17 @@ import com.example.forecast.network.retrofit.RetrofitClient
 import com.example.forecast.ui.mapper.CurrentWeatherUiMapper
 import com.example.forecast.ui.mapper.ForecastWeatherUiMapper
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.round
 
 sealed class DetailUIState {
-    object Loading : DetailUIState()
 
+    object Loading : DetailUIState()
     data class Success(
         val temperature: String,
         val iconUrl: String,
         val forecast: List<ForecastWeatherUI>
     ) : DetailUIState()
-
     data class Error(val message: String) : DetailUIState()
 }
 
@@ -62,19 +59,18 @@ class DetailViewModel : ViewModel() {
     private var restartRequiredRefreshSwipe = false
 
     private fun isCachedValidCurrent(timestamp: Long): Boolean {
-        Log.e("MainViewModel", "Проверка валидности current")
-        return (System.currentTimeMillis() - timestamp) < CacheConfig.CACHE_VALIDITY_DURATION_MS
+        return (System.currentTimeMillis() - timestamp) <
+                Constants.Cache.CACHE_VALIDITY_DURATION_MS
     }
 
     private fun isCachedValidForecast(timestamp: Long): Boolean {
-        Log.e("MainViewModel", "Проверка валидности forecast")
-        return (System.currentTimeMillis() - timestamp) < CacheConfig.CACHE_VALIDITY_DURATION_MS
+        return (System.currentTimeMillis() - timestamp) <
+                Constants.Cache.CACHE_VALIDITY_DURATION_MS
     }
 
     fun initData(cityName: String, context: Context) {
         if (isLoadedStartData) return
 
-        Log.e("MainViewModel", "| ПОЛУЧЕНИЕ ДЕТАЛЕЙ ПОГОДЫ |\nЗапрос данных о деталях погоды для $cityName")
         isLoadedStartData = true
         loadCityDetail(cityName, context)
     }
@@ -83,10 +79,8 @@ class DetailViewModel : ViewModel() {
         if (loadCityDetailJob?.isActive == true) return
 
         loadCityDetailJob = viewModelScope.launch {
-            Log.e("MainViewModel", "Запуск корутины loadCityDetail")
             _detailState.postValue(DetailUIState.Loading)
             loadCityDetailData(cityName, context)
-            Log.e("MainViewModel", "Корутина loadCityDetail завершена\n| ПОЛУЧЕНИЕ ДЕТАЛЕЙ ПОГОДЫ ЗАВЕРШЕНО |")
         }
     }
 
@@ -100,28 +94,18 @@ class DetailViewModel : ViewModel() {
         val isForecastValid = cachedData?.forecast != null &&
                 isCachedValidForecast(cachedData.forecast.timestamp)
 
-        Log.e(
-            "MainViewModel",
-            "Кэш current=$isCurrentValid, forecast=$isForecastValid"
-        )
-
         if (isCurrentValid && isForecastValid) {
-            Log.e("MainViewModel", "Используется валидный кэш")
             _detailState.postValue(buildSuccessState(cachedData!!, context))
             return
         }
 
         try {
-            delay(3_000)
-
             if (!isCurrentValid) {
-                Log.e("MainViewModel", "Запрос API current для $cityName")
                 val currentDto = RetrofitClient.weatherApi.getCurrentWeather(cityName)
                 WeatherRepository.setCachedCurrent(cityName, currentDto)
             }
 
             if (!isForecastValid) {
-                Log.e("MainViewModel", "Запрос API forecast для $cityName")
                 val forecastDto = RetrofitClient.weatherApi.getForecast(cityName)
                 WeatherRepository.setCachedForecast(cityName, forecastDto)
             }
@@ -129,19 +113,16 @@ class DetailViewModel : ViewModel() {
             val updatedData = WeatherRepository.getCachedDetails(cityName)
 
             if (updatedData?.current == null || updatedData.forecast == null) {
-                Log.e("MainViewModel", "Ошибка: данные после API невалидны")
                 _detailState.postValue(
-                    DetailUIState.Error(context.getString(R.string.error_fetch_current_weather))
+                    DetailUIState.Error(context.getString(R.string.error_fetch_details_weather))
                 )
                 return
             }
 
-            Log.e("MainViewModel", "Данные успешно обновлены")
             _detailState.postValue(buildSuccessState(updatedData, context))
         } catch (e: Exception) {
-            Log.e("MainViewModel", "Ошибка API загрузки деталей")
             _detailState.postValue(
-                DetailUIState.Error(context.getString(R.string.error_fetch_current_weather))
+                DetailUIState.Error(context.getString(R.string.error_fetch_details_weather))
             )
         }
     }
@@ -151,12 +132,7 @@ class DetailViewModel : ViewModel() {
         context: Context
     ): DetailUIState.Success {
 
-        Log.e("MainViewModel", "Формирование DetailUIState.Success")
-
-        if (forecastUiMapper == null) {
-            Log.e("MainViewModel", "Инициализация ForecastWeatherUiMapper")
-            forecastUiMapper = ForecastWeatherUiMapper(context)
-        }
+        if (forecastUiMapper == null) forecastUiMapper = ForecastWeatherUiMapper(context)
 
         val currentUi = currentUiMapper.map(cached!!.current!!)
         val forecastUi = forecastUiMapper!!.map(cached!!.forecast!!)
@@ -172,18 +148,13 @@ class DetailViewModel : ViewModel() {
     }
 
     private fun onSwipeRefreshDetails(cityName: String, context: Context) {
-        if (refreshSwipeJob?.isActive == true) {
-            Log.e("MainViewModel", "Swipe Refresh уже начался...")
-            return
-        }
+        if (refreshSwipeJob?.isActive == true) return
 
         _refreshState.value = RefreshDetailState.Loading
 
         refreshSwipeJob = viewModelScope.launch {
             try {
-                Log.e("MainViewModel", "| REFRESH SWIPE ДЕТАЛЕЙ |\nЗапуск корутины Refresh")
                 refreshDetailsSwipe(cityName, context)
-                Log.e("MainViewModel", "Корутина Refresh завершена\n| REFRESH SWIPE ДЕТАЛЕЙ ЗАВЕРШЕН |")
             } finally {
                 _refreshState.value = RefreshDetailState.Standard
             }
@@ -192,10 +163,6 @@ class DetailViewModel : ViewModel() {
 
     private suspend fun refreshDetailsSwipe(cityName: String, context: Context) {
         try {
-            delay(7_000)
-
-            Log.e("MainViewModel", "Pull-to-refresh - Запрос API для деталей города $cityName")
-
             val currentDto = RetrofitClient.weatherApi.getCurrentWeather(cityName)
             WeatherRepository.setCachedCurrent(cityName, currentDto)
 
@@ -215,14 +182,12 @@ class DetailViewModel : ViewModel() {
         wasLoadingWhenPaused = true
 
         if (loadCityDetailJob?.isActive == true) {
-            Log.e("MainViewModel", "Отмена корутины loadCitiesDetail")
             loadCityDetailJob?.cancel()
             loadCityDetailJob = null
             restartRequiredLoadCityDetail = true
         }
 
         if (refreshSwipeJob?.isActive == true) {
-            Log.e("MainViewModel", "Отмена корутины Refresh")
             refreshSwipeJob?.cancel()
             refreshSwipeJob = null
             restartRequiredRefreshSwipe = true
@@ -233,13 +198,11 @@ class DetailViewModel : ViewModel() {
         if (wasLoadingWhenPaused) {
 
             if (restartRequiredLoadCityDetail) {
-                Log.e("MainViewModel", "Перезапуск корутины loadCitiesDetail")
                 loadCityDetail(cityName, context)
                 restartRequiredLoadCityDetail = false
             }
 
             if (restartRequiredRefreshSwipe) {
-                Log.e("MainViewModel", "Перезапуск корутины Refresh")
                 onSwipeRefreshDetails(cityName, context)
                 restartRequiredRefreshSwipe = false
             }

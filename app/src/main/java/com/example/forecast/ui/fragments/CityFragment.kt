@@ -5,12 +5,14 @@ import android.os.Bundle
 import android.text.Editable
 import android.text.InputType
 import android.text.TextWatcher
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
 import android.widget.ArrayAdapter
 import android.widget.AutoCompleteTextView
+import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
@@ -181,14 +183,40 @@ class CityFragment : Fragment() {
     private fun observeMessageError() {
         viewModel.messageEvent.observe(viewLifecycleOwner) { event ->
             event.getContentIfNotHandled()?.let { message ->
-                Snackbar.make(requireView(), message, Snackbar.LENGTH_LONG).apply {
-                    setBackgroundTint(ContextCompat.getColor(
+
+                val snackbar = Snackbar.make(
+                    requireView(),
+                    message,
+                    Snackbar.LENGTH_LONG
+                )
+
+                snackbar.setBackgroundTint(
+                    ContextCompat.getColor(
                         requireContext(),
-                        R.color.errorSnackbarPullToRefresh)
+                        R.color.errorSnackbarPullToRefresh
                     )
-                    setTextColor(ContextCompat.getColor(requireContext(), android.R.color.white))
-                    show()
+                )
+
+                snackbar.setTextColor(
+                    ContextCompat.getColor(
+                        requireContext(),
+                        android.R.color.white
+                    )
+                )
+
+                val snackbarView = snackbar.view
+                val textView =
+                    snackbarView.findViewById<TextView>(
+                        com.google.android.material.R.id.snackbar_text
+                    )
+
+                textView.apply {
+                    textAlignment = View.TEXT_ALIGNMENT_CENTER
+                    gravity = Gravity.CENTER
+                    maxLines = 3
                 }
+
+                snackbar.show()
             }
         }
     }
