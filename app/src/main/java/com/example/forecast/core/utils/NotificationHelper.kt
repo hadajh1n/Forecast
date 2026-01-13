@@ -51,6 +51,10 @@ class NotificationHelper(context: Context) {
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle(title)
             .setContentText(message)
+            .setStyle(
+                NotificationCompat.BigTextStyle()
+                    .bigText(message)
+            )
             .setContentIntent(intent)
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)

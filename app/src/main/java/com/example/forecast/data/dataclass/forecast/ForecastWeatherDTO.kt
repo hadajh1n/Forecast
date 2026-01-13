@@ -1,6 +1,7 @@
 package com.example.forecast.data.dataclass.forecast
 
 import com.example.forecast.data.dataclass.current.WeatherDTO
+import com.google.gson.annotations.SerializedName
 
 data class ForecastWeatherDTO(
     val list: List<ForecastItemDTO>
@@ -22,6 +23,10 @@ data class ForecastMainDTO(
 
 data class WindDTO(val speed: Float? = null)
 
-data class RainDTO(val `3h`: Float? = null)
+data class RainDTO(
+    @SerializedName("3h") val threeHours: Float? = null
+)
 
-data class SnowDTO(val `3h`: Float? = null)
+data class SnowDTO(
+    @SerializedName("3h") val threeHours: Float? = null
+)

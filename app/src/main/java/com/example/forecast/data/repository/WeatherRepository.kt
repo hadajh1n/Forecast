@@ -68,7 +68,7 @@ object WeatherRepository {
     }
 
     suspend fun getCachedDetails(cityName: String): CachedWeatherData? = cacheMutex.withLock {
-            memoryCache[cityName]
+        memoryCache[cityName]
     }
 
     suspend fun setCachedCurrent(

@@ -39,8 +39,8 @@ object DangerousWeatherChecker {
         val minTemp = tomorrowItems.minOf { it.main.temp_min }
         val maxTemp = tomorrowItems.maxOf { it.main.temp_max }
         val maxWind = tomorrowItems.maxOf { it.wind?.speed ?: 0f }
-        val totalRain = tomorrowItems.sumOf { (it.rain?.`3h` ?: 0f).toDouble() }.toFloat()
-        val totalSnow = tomorrowItems.sumOf { (it.snow?.`3h` ?: 0f).toDouble() }.toFloat()
+        val totalRain = tomorrowItems.sumOf { (it.rain?.threeHours ?: 0f).toDouble() }.toFloat()
+        val totalSnow = tomorrowItems.sumOf { (it.snow?.threeHours ?: 0f).toDouble() }.toFloat()
 
         val warnings = mutableListOf<String>()
 
