@@ -6,7 +6,7 @@ import android.content.SharedPreferences
 object PreferencesHelper {
 
     private const val PREF_NAME = "weather_prefs"
-    private const val KEY_PREFIX = "dangerous_weather_switch_"
+    private const val KEY_PREFIX = "dangerous_weather_switch"
 
     private fun getPrefs(context: Context): SharedPreferences =
         context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)

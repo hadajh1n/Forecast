@@ -33,6 +33,7 @@
                     android:id="@+id/contentContainer"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:maxWidth="@dimen/max_item_width"
                     android:orientation="vertical"
                     android:visibility="gone"
                     tools:visibility="visible">
@@ -79,17 +80,21 @@
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/rvWeather"
                         android:layout_width="match_parent"
-                        android:layout_height="400dp" />
+                        android:layout_height="400dp"
+                        android:layout_gravity="center_horizontal"
+                        android:maxWidth="@dimen/max_item_width" />
 
                     <Switch
                         android:id="@+id/switchDangerousWeather"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_gravity="center"
-                        android:layout_marginTop="5dp"
+                        android:layout_marginTop="16dp"
+                        android:padding="10dp"
                         android:checked="false"
                         android:text="@string/subscribe"
                         android:textColor="@color/black"
+                        android:textAlignment="center"
                         android:thumbTint="@color/switch_thumb_color"
                         android:trackTint="@color/black"
                         app:useMaterialThemeColors="true"/>

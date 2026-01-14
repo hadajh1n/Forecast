@@ -1,8 +1,6 @@
 package com.example.forecast.ui.fragments
 
-import android.Manifest
 import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Bundle
 import android.view.Gravity
 import androidx.fragment.app.Fragment
@@ -18,8 +16,9 @@ import androidx.navigation.fragment.navArgs
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.example.forecast.R
-import com.example.forecast.core.utils.NotificationHelper
-import com.example.forecast.core.utils.PreferencesHelper
+import com.example.forecast.core.notifications.NotificationPermissionChecker
+import com.example.forecast.core.notifications.NotificationPermissionRequester
+import com.example.forecast.core.notifications.WeatherNotificationSubscription
 import com.example.forecast.databinding.FragmentDetailBinding
 import com.example.forecast.ui.viewModel.DetailUIState
 import com.example.forecast.ui.viewModel.RefreshDetailState
@@ -27,15 +26,21 @@ import com.google.android.material.snackbar.Snackbar
 
 class DetailFragment : Fragment() {
 
-    private var _binding : FragmentDetailBinding? = null
+    companion object {
+        private const val REQUEST_CODE_NOTIFICATION_PERMISSION = 101
+    }
 
+    private var _binding : FragmentDetailBinding? = null
     private val binding get() = _binding!!
 
     private val viewModel: DetailViewModel by viewModels()
     private val detailAdapter = DetailAdapter()
     private val args: DetailFragmentArgs by navArgs()
     private val cityName: String by lazy { args.cityName }
-    private lateinit var notificationHelper: NotificationHelper
+
+    private val permissionChecker = NotificationPermissionChecker
+    private val permissionRequester = NotificationPermissionRequester(this@DetailFragment)
+    private lateinit var subscriptionManager: WeatherNotificationSubscription
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -50,7 +55,7 @@ class DetailFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        notificationHelper = NotificationHelper(requireContext())
+        subscriptionManager = WeatherNotificationSubscription(requireContext())
 
         setupRecyclerView()
         setupSwipeRefresh()
@@ -106,52 +111,23 @@ class DetailFragment : Fragment() {
 
     private fun loadDangerousWeatherSwitchState() {
         binding.switchDangerousWeather.isChecked =
-            PreferencesHelper.isDangerousWeatherEnabled(requireContext(), cityName)
+            subscriptionManager.isSubscribed(cityName)
     }
 
     private fun handleDangerousWeatherSwitchChange() {
         binding.switchDangerousWeather.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
-                if (hasNotificationPermission()) {
-                    PreferencesHelper.saveDangerousWeatherEnabled(
-                        requireContext(),
-                        cityName,
-                        true
-                    )
+                if (permissionChecker.hasPermission(requireContext())) {
+                    subscriptionManager.subscribe(cityName)
                 } else {
-                    requestNotificationPermissionIfNeeded()
+                    permissionRequester.requestPermissionIfNeeded(
+                        REQUEST_CODE_NOTIFICATION_PERMISSION
+                    )
                 }
             } else {
-                PreferencesHelper.saveDangerousWeatherEnabled(
-                    requireContext(),
-                    cityName,
-                    false
-                )
+                subscriptionManager.unsubscribe(cityName)
             }
         }
-    }
-
-    private fun hasNotificationPermission(): Boolean {
-        return Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
-                ContextCompat.checkSelfPermission(
-                    requireContext(),
-                    Manifest.permission.POST_NOTIFICATIONS
-                ) == PackageManager.PERMISSION_GRANTED
-    }
-
-    private fun requestNotificationPermissionIfNeeded() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
-
-        if (ContextCompat.checkSelfPermission(
-                requireContext(),
-                Manifest.permission.POST_NOTIFICATIONS
-            ) == PackageManager.PERMISSION_GRANTED
-        ) return
-
-        requestPermissions(
-            arrayOf(Manifest.permission.POST_NOTIFICATIONS),
-            REQUEST_CODE_NOTIFICATION_PERMISSION
-        )
     }
 
     override fun onRequestPermissionsResult(
@@ -168,30 +144,12 @@ class DetailFragment : Fragment() {
 
             if (granted) {
                 binding.switchDangerousWeather.isChecked = true
-                PreferencesHelper.saveDangerousWeatherEnabled(
-                    requireContext(),
-                    cityName,
-                    true
-                )
+                subscriptionManager.subscribe(cityName)
             } else {
                 binding.switchDangerousWeather.isChecked = false
-                PreferencesHelper.saveDangerousWeatherEnabled(
-                    requireContext(),
-                    cityName,
-                    false
-                )
-
-                Snackbar.make(
-                    binding.tvCity,
-                    "Разрешите уведомления в настройках приложения",
-                    Snackbar.LENGTH_LONG
-                ).show()
+                subscriptionManager.unsubscribe(cityName)
             }
         }
-    }
-
-    companion object {
-        private const val REQUEST_CODE_NOTIFICATION_PERMISSION = 101
     }
 
     private fun observeMessageEvents() {
@@ -236,7 +194,6 @@ class DetailFragment : Fragment() {
             }
         }
     }
-
 
     private fun setupRecyclerView() = with(binding) {
         rvWeather.adapter = detailAdapter

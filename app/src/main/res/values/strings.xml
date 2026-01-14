@@ -14,7 +14,7 @@
     <string name="add_city_input_hint">Введите название города</string>
     <string name="cancel_button">Отмена</string>
     <string name="unknown_city">Неизвестный город</string>
-    <string name="subscribe">Уведомления об опасных погодных условиях</string>
+    <string name="subscribe">Уведомления об опасных\nпогодных условиях</string>
     <string name="dangerous_weather_tomorrow_title">Опасная погода завтра в %s</string>
     <string name="very_low_temperature_warning">Очень низкая температура: %d°C</string>
     <string name="very_high_temperature_warning">Очень высокая температура: %d°C</string>

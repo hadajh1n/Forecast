@@ -12,8 +12,13 @@ import com.example.forecast.R
 
 class NotificationHelper(context: Context) {
 
+    companion object {
+        private const val CHANNEL_ID = "dangerous_weather_channel"
+        private const val CHANNEL_NAME = "Опасная погода"
+        private const val CHANNEL_DESCRIPTION = "Уведомления об опасных погодных условиях"
+    }
+
     private val appContext = context.applicationContext
-    private val CHANNEL_ID = "dangerous_weather_channel"
 
     init {
         createNotificationChannel()
@@ -23,10 +28,10 @@ class NotificationHelper(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "Опасная погода",
+                CHANNEL_NAME,
                 NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
-                description = "Уведомления об опасных погодных условиях"
+                description = CHANNEL_DESCRIPTION
             }
 
             val manager = appContext.getSystemService(Context.NOTIFICATION_SERVICE)
