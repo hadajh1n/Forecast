@@ -163,7 +163,6 @@ class CityFragment : Fragment() {
     private fun handleLoadingState() = with(binding) {
         progressBar.visibility = View.VISIBLE
         cvCity.visibility = View.GONE
-        cvError.visibility = View.GONE
         cvAddFirstCity.visibility = View.GONE
         btnAddCity.visibility = View.GONE
         swipeRefreshLayout.isEnabled = false
@@ -172,7 +171,6 @@ class CityFragment : Fragment() {
     private fun handleSuccessState(state: MainUIState.Success) = with(binding) {
         swipeRefreshLayout.isRefreshing = false
         progressBar.visibility = View.GONE
-        cvError.visibility = View.GONE
         cvCity.visibility = if (state.cities.isEmpty()) View.GONE else View.VISIBLE
         cvAddFirstCity.visibility = if (state.cities.isEmpty()) View.VISIBLE else View.GONE
         btnAddCity.visibility = View.VISIBLE

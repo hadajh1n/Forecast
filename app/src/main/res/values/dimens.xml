@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <dimen name="dialog_padding">40dp</dimen>
-    <dimen name="max_item_width">600dp</dimen>
 </resources>

@@ -33,7 +33,6 @@
                     android:id="@+id/contentContainer"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:maxWidth="@dimen/max_item_width"
                     android:orientation="vertical"
                     android:visibility="gone"
                     tools:visibility="visible">
@@ -41,7 +40,7 @@
                     <androidx.constraintlayout.widget.ConstraintLayout
                         android:id="@+id/llCity"
                         android:layout_width="match_parent"
-                        android:layout_height="300dp"
+                        android:layout_height="230dp"
                         android:orientation="vertical">
 
                         <TextView
@@ -49,7 +48,7 @@
                             style="@style/tvCityDetailActivity"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="100dp"
+                            android:layout_marginTop="50dp"
                             android:gravity="center"
                             app:layout_constraintEnd_toEndOf="parent"
                             app:layout_constraintStart_toStartOf="parent"
@@ -80,9 +79,8 @@
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/rvWeather"
                         android:layout_width="match_parent"
-                        android:layout_height="400dp"
-                        android:layout_gravity="center_horizontal"
-                        android:maxWidth="@dimen/max_item_width" />
+                        android:layout_height="350dp"
+                        android:layout_gravity="center_horizontal"/>
 
                     <Switch
                         android:id="@+id/switchDangerousWeather"
@@ -90,6 +88,7 @@
                         android:layout_height="wrap_content"
                         android:layout_gravity="center"
                         android:layout_marginTop="16dp"
+                        android:layout_marginBottom="16dp"
                         android:padding="10dp"
                         android:checked="false"
                         android:text="@string/subscribe"
