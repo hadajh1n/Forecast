@@ -8,8 +8,6 @@ import com.example.forecast.core.utils.DangerousWeatherChecker
 import com.example.forecast.core.utils.NotificationHelper
 import com.example.forecast.core.utils.PreferencesHelper
 import com.example.forecast.data.repository.WeatherRepository
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 class DangerousWeatherWorker(
     context: Context,
@@ -21,8 +19,8 @@ class DangerousWeatherWorker(
         private const val LAST_NOTIFICATION_PREFIX = "last_notification"
     }
 
-    override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
-        try {
+    override suspend fun doWork(): Result {
+        return try {
             WeatherRepository.initCacheFromDb()
             val cities = WeatherRepository.getMemoryCities()
 
