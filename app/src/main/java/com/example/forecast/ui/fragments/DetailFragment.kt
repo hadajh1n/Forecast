@@ -1,6 +1,6 @@
 package com.example.forecast.ui.fragments
 
-import android.content.pm.PackageManager
+import android.Manifest
 import android.os.Bundle
 import android.view.Gravity
 import androidx.fragment.app.Fragment
@@ -8,6 +8,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import com.example.forecast.ui.adapter.DetailAdapter
 import com.example.forecast.ui.viewModel.DetailViewModel
@@ -17,7 +18,6 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.example.forecast.R
 import com.example.forecast.core.notifications.NotificationPermissionChecker
-import com.example.forecast.core.notifications.NotificationPermissionRequester
 import com.example.forecast.core.notifications.WeatherNotificationSubscription
 import com.example.forecast.databinding.FragmentDetailBinding
 import com.example.forecast.ui.viewModel.DetailUIState
@@ -25,10 +25,6 @@ import com.example.forecast.ui.viewModel.RefreshDetailState
 import com.google.android.material.snackbar.Snackbar
 
 class DetailFragment : Fragment() {
-
-    companion object {
-        private const val REQUEST_CODE_NOTIFICATION_PERMISSION = 101
-    }
 
     private var _binding : FragmentDetailBinding? = null
     private val binding get() = _binding!!
@@ -39,8 +35,19 @@ class DetailFragment : Fragment() {
     private val cityName: String by lazy { args.cityName }
 
     private val permissionChecker = NotificationPermissionChecker
-    private val permissionRequester = NotificationPermissionRequester(this@DetailFragment)
     private lateinit var subscriptionManager: WeatherNotificationSubscription
+
+    private val notificationPermissionLauncher = registerForActivityResult(
+            ActivityResultContracts.RequestPermission()
+    ) { granted ->
+            if (granted) {
+                binding.switchDangerousWeather.isChecked = true
+                subscriptionManager.subscribe(cityName)
+            } else {
+                binding.switchDangerousWeather.isChecked = false
+                subscriptionManager.unsubscribe(cityName)
+            }
+        }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -120,33 +127,11 @@ class DetailFragment : Fragment() {
                 if (permissionChecker.hasPermission(requireContext())) {
                     subscriptionManager.subscribe(cityName)
                 } else {
-                    permissionRequester.requestPermissionIfNeeded(
-                        REQUEST_CODE_NOTIFICATION_PERMISSION
+                    notificationPermissionLauncher.launch(
+                        Manifest.permission.POST_NOTIFICATIONS
                     )
                 }
             } else {
-                subscriptionManager.unsubscribe(cityName)
-            }
-        }
-    }
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-
-        if (requestCode == REQUEST_CODE_NOTIFICATION_PERMISSION) {
-            val granted =
-                grantResults.isNotEmpty() &&
-                        grantResults[0] == PackageManager.PERMISSION_GRANTED
-
-            if (granted) {
-                binding.switchDangerousWeather.isChecked = true
-                subscriptionManager.subscribe(cityName)
-            } else {
-                binding.switchDangerousWeather.isChecked = false
                 subscriptionManager.unsubscribe(cityName)
             }
         }

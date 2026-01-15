@@ -26,27 +26,26 @@ class WeatherApp : Application() {
     }
 
     private fun setupBackgroundWeatherUpdates() {
-        val workRequest = PeriodicWorkRequestBuilder<WeatherUpdateWorker>(
+        val weatherUpdateWorkRequest = PeriodicWorkRequestBuilder<WeatherUpdateWorker>(
             BACKGROUND_UPDATE_INTERVAL_HOURS, TimeUnit.HOURS
         ).build()
 
         WorkManager.getInstance(this@WeatherApp).enqueueUniquePeriodicWork(
             "WeatherAutoUpdate",
             ExistingPeriodicWorkPolicy.KEEP,
-            workRequest
+            weatherUpdateWorkRequest
         )
     }
 
     private fun setupDangerousWeatherWorker() {
-        val request = PeriodicWorkRequestBuilder<DangerousWeatherWorker>(
+        val dangerousWeatherWorkRequest = PeriodicWorkRequestBuilder<DangerousWeatherWorker>(
             NOTIFICATIONS_INTERVAL_HOURS, TimeUnit.HOURS
         ).build()
 
-        WorkManager.getInstance(this)
-            .enqueueUniquePeriodicWork(
-                "DangerousWeatherCheck",
-                ExistingPeriodicWorkPolicy.KEEP,
-                request
-            )
+        WorkManager.getInstance(this@WeatherApp).enqueueUniquePeriodicWork(
+            "DangerousWeatherCheck",
+            ExistingPeriodicWorkPolicy.KEEP,
+            dangerousWeatherWorkRequest
+        )
     }
 }

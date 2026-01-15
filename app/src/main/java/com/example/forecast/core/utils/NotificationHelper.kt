@@ -9,6 +9,7 @@ import androidx.core.app.NotificationManagerCompat
 import android.os.Bundle
 import androidx.navigation.NavDeepLinkBuilder
 import com.example.forecast.R
+import com.example.forecast.core.notifications.NotificationPermissionChecker
 
 class NotificationHelper(context: Context) {
 
@@ -45,6 +46,8 @@ class NotificationHelper(context: Context) {
         message: String,
         cityName: String
     ) {
+        if (!NotificationPermissionChecker.hasPermission(appContext)) return
+
         val notificationId = cityName.hashCode()
         val intent = NavDeepLinkBuilder(appContext)
             .setGraph(R.navigation.nav_graph)
