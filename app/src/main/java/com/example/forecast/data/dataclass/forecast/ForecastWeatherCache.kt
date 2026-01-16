@@ -10,5 +10,8 @@ data class ForecastItemCache(
     val dt: Long,
     val tempMax: Float,
     val tempMin: Float,
-    val icon: String
+    val icon: String,
+    val wind: Float?,
+    val rain: Float?,
+    val snow: Float?
 )

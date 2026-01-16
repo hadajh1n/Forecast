@@ -15,6 +15,9 @@ class ForecastWeatherCacheEntityMapper {
             tempMax = item.tempMax,
             tempMin = item.tempMin,
             icon = item.icon,
+            wind = null,
+            rain = null,
+            snow = null,
             timestamp = timestamp
         )
 }

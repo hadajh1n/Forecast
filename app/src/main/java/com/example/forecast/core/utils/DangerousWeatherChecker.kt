@@ -2,6 +2,8 @@ package com.example.forecast.core.utils
 
 import android.content.Context
 import com.example.forecast.R
+import com.example.forecast.data.dataclass.forecast.ForecastItemCache
+import com.example.forecast.data.repository.WeatherRepository
 import com.example.forecast.network.retrofit.RetrofitClient
 import java.util.Calendar
 
@@ -16,31 +18,58 @@ object DangerousWeatherChecker {
     private const val STRONG_WIND_MS = 15f
 
     suspend fun getTomorrowDangerWarnings(context: Context, cityName: String): List<String> {
-        val forecast = try {
-            RetrofitClient.weatherApi.getForecast(cityName)
+
+        val forecastCache = WeatherRepository.getCachedDetails(cityName)?.forecast
+
+        val forecastItemsTomorrow = try {
+            val dtoForecast = RetrofitClient.weatherApi.getForecast(cityName)
+            WeatherRepository.setCachedForecast(cityName, dtoForecast)
+
+            val forecastItems = dtoForecast.list.map {
+                ForecastItemCache(
+                    dt = it.dt,
+                    tempMax = it.main.temp_max,
+                    tempMin = it.main.temp_min,
+                    icon = it.weather.firstOrNull()?.icon.orEmpty(),
+                    wind = it.wind?.speed,
+                    rain = it.rain?.threeHours,
+                    snow = it.snow?.threeHours
+                )
+            }
+
+            val tomorrowStart = Calendar.getInstance().apply {
+                add(Calendar.DAY_OF_YEAR, 1)
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }.timeInMillis / MILLIS_IN_SECOND
+
+            val tomorrowEnd = tomorrowStart + SECONDS_IN_DAY - 1
+
+            forecastItems.filter { it.dt in tomorrowStart..tomorrowEnd }
         } catch (e: Exception) {
-            return emptyList()
+            forecastCache?.items?.filter {
+                val dt = it.dt
+                val tomorrowStart = Calendar.getInstance().apply {
+                    add(Calendar.DAY_OF_YEAR, 1)
+                    set(Calendar.HOUR_OF_DAY, 0)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }.timeInMillis / MILLIS_IN_SECOND
+                val tomorrowEnd = tomorrowStart + SECONDS_IN_DAY - 1
+                dt in tomorrowStart..tomorrowEnd
+            } ?: emptyList()
         }
 
-        val tomorrowStart = Calendar.getInstance().apply {
-            add(Calendar.DAY_OF_YEAR, 1)
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }.timeInMillis / MILLIS_IN_SECOND
+        if (forecastItemsTomorrow.isEmpty()) return emptyList()
 
-        val tomorrowEnd = tomorrowStart + SECONDS_IN_DAY - 1
-
-        val tomorrowItems = forecast.list.filter { it.dt in tomorrowStart..tomorrowEnd }
-
-        if (tomorrowItems.isEmpty()) return emptyList()
-
-        val minTemp = tomorrowItems.minOf { it.main.temp_min }
-        val maxTemp = tomorrowItems.maxOf { it.main.temp_max }
-        val maxWind = tomorrowItems.maxOf { it.wind?.speed ?: 0f }
-        val totalRain = tomorrowItems.sumOf { (it.rain?.threeHours ?: 0f).toDouble() }.toFloat()
-        val totalSnow = tomorrowItems.sumOf { (it.snow?.threeHours ?: 0f).toDouble() }.toFloat()
+        val minTemp = forecastItemsTomorrow.minOf { it.tempMin }
+        val maxTemp = forecastItemsTomorrow.maxOf { it.tempMax }
+        val maxWind = forecastItemsTomorrow.maxOf { it.wind ?: 0f }
+        val totalRain = forecastItemsTomorrow.sumOf { (it.rain ?: 0f).toDouble() }.toFloat()
+        val totalSnow = forecastItemsTomorrow.sumOf { (it.snow ?: 0f).toDouble() }.toFloat()
 
         val warnings = mutableListOf<String>()
 

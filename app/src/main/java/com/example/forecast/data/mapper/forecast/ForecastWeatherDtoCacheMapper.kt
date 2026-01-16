@@ -13,7 +13,10 @@ class ForecastWeatherDtoCacheMapper {
                     dt = it.dt,
                     tempMax = it.main.temp_max,
                     tempMin = it.main.temp_min,
-                    icon = it.weather.firstOrNull()?.icon.orEmpty()
+                    icon = it.weather.firstOrNull()?.icon.orEmpty(),
+                    wind = null,
+                    rain = null,
+                    snow = null
                 )
             },
             timestamp = System.currentTimeMillis()

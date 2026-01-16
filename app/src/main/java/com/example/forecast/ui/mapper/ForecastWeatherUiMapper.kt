@@ -52,7 +52,10 @@ class ForecastWeatherUiMapper(private val context: Context) {
                     dt = dayItems.first().dt,
                     tempMax = dayItems.maxOfOrNull { it.tempMax } ?: 0f,
                     tempMin = dayItems.minOfOrNull { it.tempMin } ?: 0f,
-                    icon = dayItems[dayItems.size / 2].icon
+                    icon = dayItems[dayItems.size / 2].icon,
+                    wind = null,
+                    rain = null,
+                    snow = null
                 )
             }
     }

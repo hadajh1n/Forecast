@@ -15,5 +15,8 @@ data class ForecastWeatherEntity(
     val tempMax: Float,
     val tempMin: Float,
     val icon: String,
+    val wind: Float? = null,
+    val rain: Float? = null,
+    val snow: Float? = null,
     val timestamp: Long = 0L
 )
