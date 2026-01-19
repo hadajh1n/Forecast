@@ -12,9 +12,7 @@ import com.example.forecast.network.retrofit.RetrofitClient
 import com.example.forecast.ui.mapper.CurrentWeatherUiMapper
 import com.example.forecast.ui.mapper.ForecastWeatherUiMapper
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlin.math.round
 
 sealed class DetailUIState {
 
@@ -102,8 +100,6 @@ class DetailViewModel : ViewModel() {
         }
 
         try {
-            delay(5_000)
-
             if (!isCurrentValid) {
                 val currentDto = RetrofitClient.weatherApi.getCurrentWeather(cityName)
                 WeatherRepository.setCachedCurrent(cityName, currentDto)
@@ -141,7 +137,7 @@ class DetailViewModel : ViewModel() {
         val forecastUi = forecastUiMapper!!.map(cached!!.forecast!!)
 
         return DetailUIState.Success(
-            temperature = round(currentUi.temp).toInt().toFloat(),
+            temperature = currentUi.temp,
             iconUrl = currentUi.iconUrl,
             forecast = forecastUi
         )
@@ -163,8 +159,6 @@ class DetailViewModel : ViewModel() {
 
     private suspend fun refreshDetailsSwipe(cityName: String) {
         try {
-            delay(5_000)
-
             val currentDto = RetrofitClient.weatherApi.getCurrentWeather(cityName)
             WeatherRepository.setCachedCurrent(cityName, currentDto)
 

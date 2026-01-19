@@ -1,7 +1,5 @@
 package com.example.forecast.ui.mapper
 
-import android.content.Context
-import com.example.forecast.R
 import com.example.forecast.data.dataclass.forecast.ForecastItemCache
 import com.example.forecast.data.dataclass.forecast.ForecastWeatherCache
 import com.example.forecast.data.dataclass.forecast.ForecastWeatherUI
@@ -9,7 +7,6 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
-import kotlin.math.round
 
 class ForecastWeatherUiMapper {
 
@@ -25,8 +22,8 @@ class ForecastWeatherUiMapper {
                 ForecastWeatherUI(
                     dayOfWeek = formatDayOfWeek(dayItem.dt),
                     iconUrl = "https://openweathermap.org/img/wn/${dayItem.icon}@2x.png",
-                    tempMax = round(dayItem.tempMax),
-                    tempMin = round(dayItem.tempMin)
+                    tempMax = dayItem.tempMax,
+                    tempMin = dayItem.tempMin
                 )
             }
     }

@@ -25,6 +25,7 @@ import com.example.forecast.ui.viewModel.ErrorType
 import com.example.forecast.ui.viewModel.RefreshDetailState
 import com.example.forecast.ui.viewModel.UiEventDetails
 import com.google.android.material.snackbar.Snackbar
+import kotlin.math.round
 
 class DetailFragment : Fragment() {
 
@@ -225,7 +226,7 @@ class DetailFragment : Fragment() {
             contentContainer.visibility = View.VISIBLE
             tvTemperature.text = getString(
                 R.string.temperature_format,
-                state.temperature.toInt()
+                round(state.temperature).toInt()
             )
 
             Glide.with(this@DetailFragment)

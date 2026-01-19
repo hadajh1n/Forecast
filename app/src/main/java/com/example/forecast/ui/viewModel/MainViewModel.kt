@@ -11,7 +11,6 @@ import com.example.forecast.data.dataclass.current.CurrentWeatherUI
 import com.example.forecast.network.retrofit.RetrofitClient
 import com.example.forecast.ui.mapper.CurrentWeatherUiMapper
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -59,7 +58,6 @@ class MainViewModel : ViewModel() {
     val events: LiveData<Event<UiEventCities>> = _events
 
     private var isLoadedStartData = false
-
     private var loadCitiesJob: Job? = null
     private var addCitiesJob: Job? = null
     private var refreshSwipeJob: Job? = null
@@ -146,8 +144,6 @@ class MainViewModel : ViewModel() {
         }
 
         try {
-            delay(10_000)
-
             val weather = RetrofitClient.weatherApi.getCurrentWeather(cityName)
             WeatherRepository.setCachedCurrent(cityName, weather)
 
@@ -179,8 +175,6 @@ class MainViewModel : ViewModel() {
 
     private suspend fun removeCitySwipe() {
         val cachedCities = WeatherRepository.getMemoryCities()
-
-        delay(5_000)
 
         val cities = cachedCities.mapNotNull { city ->
             val cached = WeatherRepository.getCachedDetails(city)?.current
@@ -217,8 +211,6 @@ class MainViewModel : ViewModel() {
         }
 
         try {
-            delay(5_000)
-
             for (city in cachedCities) {
                 val currentDto = RetrofitClient.weatherApi.getCurrentWeather(city)
                 WeatherRepository.setCachedCurrent(city, currentDto)
