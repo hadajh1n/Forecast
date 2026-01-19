@@ -9,6 +9,7 @@ import com.bumptech.glide.Glide
 import com.example.forecast.R
 import com.example.forecast.databinding.ItemDetailBinding
 import com.example.forecast.data.dataclass.forecast.ForecastWeatherUI
+import kotlin.math.round
 
 class DetailAdapter : RecyclerView.Adapter<DetailAdapter.DetailViewHolder>() {
 
@@ -33,8 +34,16 @@ class DetailAdapter : RecyclerView.Adapter<DetailAdapter.DetailViewHolder>() {
                 .load(forecast.iconUrl)
                 .into(imDayWeek)
 
-            tvMaxTemperature.text = forecast.tempMax
-            tvMinTemperature.text = forecast.tempMin
+            tvMaxTemperature.text = itemView.context.getString(
+                R.string.temperature_format,
+                round(forecast.tempMax).toInt()
+            )
+
+            tvMinTemperature.text = itemView.context.getString(
+                R.string.temperature_format,
+                round(forecast.tempMin).toInt()
+            )
+
         }
     }
 

@@ -1,18 +1,17 @@
 package com.example.forecast.ui.viewModel
 
-import android.content.Context
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.forecast.core.utils.Constants
-import com.example.forecast.R
 import com.example.forecast.core.utils.Event
 import com.example.forecast.data.repository.WeatherRepository
 import com.example.forecast.data.dataclass.current.CurrentWeatherUI
 import com.example.forecast.network.retrofit.RetrofitClient
 import com.example.forecast.ui.mapper.CurrentWeatherUiMapper
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -35,6 +34,14 @@ sealed class RefreshCityState {
     object Loading : RefreshCityState()
 }
 
+sealed class UiEventCities {
+
+    object Offline : UiEventCities()
+    object CityAlreadyAdded : UiEventCities()
+    object ErrorAddingCity : UiEventCities()
+    object ErrorRefresh : UiEventCities()
+}
+
 class MainViewModel : ViewModel() {
 
     private val currentUiMapper = CurrentWeatherUiMapper()
@@ -48,8 +55,8 @@ class MainViewModel : ViewModel() {
     private val _refreshState = MutableLiveData<RefreshCityState>()
     val refreshState: LiveData<RefreshCityState> = _refreshState
 
-    private val _messageEvent = MutableLiveData<Event<String>>()
-    val messageEvent: LiveData<Event<String>> get() = _messageEvent
+    private val _events = MutableLiveData<Event<UiEventCities>>()
+    val events: LiveData<Event<UiEventCities>> = _events
 
     private var isLoadedStartData = false
 
@@ -68,23 +75,23 @@ class MainViewModel : ViewModel() {
                 Constants.Cache.CACHE_VALIDITY_DURATION_MS
     }
 
-    fun initData(context: Context) {
+    fun initData() {
         if (isLoadedStartData) return
 
         isLoadedStartData = true
-        loadCities(context)
+        loadCities()
     }
 
-    private fun loadCities(context: Context) {
+    private fun loadCities() {
         if (loadCitiesJob?.isActive == true) return
 
         loadCitiesJob = viewModelScope.launch {
             _uiState.postValue(MainUIState.Loading)
-            loadCitiesData(context)
+            loadCitiesData()
         }
     }
 
-    private suspend fun loadCitiesData(context: Context) {
+    private suspend fun loadCitiesData() {
         WeatherRepository.initCacheFromDb()
         val cachedCities = WeatherRepository.getMemoryCities()
         val cities = mutableListOf<CurrentWeatherUI>()
@@ -101,7 +108,7 @@ class MainViewModel : ViewModel() {
                     WeatherRepository.getCachedDetails(city)?.current
                 }
             } catch (e: Exception) {
-                _messageEvent.postValue(Event(context.getString(R.string.offline_mode)))
+                _events.value = Event(UiEventCities.Offline)
                 loadCitiesJob?.cancel()
                 loadCitiesJob = null
                 cached?.current
@@ -113,11 +120,11 @@ class MainViewModel : ViewModel() {
         _uiState.postValue(MainUIState.Success(cities))
     }
 
-    private fun addNewCity(cityName: String, context: Context) {
+    private fun addNewCity(cityName: String) {
         addCitiesJob = viewModelScope.launch {
             try {
                 activeAddCities++
-                addCity(cityName, context)
+                addCity(cityName)
             } finally {
                 activeAddCities--
                 _citiesState.postValue(
@@ -127,18 +134,20 @@ class MainViewModel : ViewModel() {
         }
     }
 
-    private suspend fun addCity(cityName: String, context: Context) = mutex.withLock {
+    private suspend fun addCity(cityName: String) = mutex.withLock {
         _citiesState.value = CitiesState.Loading
 
         val currentCities = WeatherRepository.getMemoryCities()
 
         if (currentCities.any { it.equals(cityName, ignoreCase = true) }) {
-            _messageEvent.postValue(Event(context.getString(R.string.error_city_already_added)))
+            _events.value = Event(UiEventCities.CityAlreadyAdded)
             _citiesState.postValue(CitiesState.Standard)
             return@withLock
         }
 
         try {
+            delay(10_000)
+
             val weather = RetrofitClient.weatherApi.getCurrentWeather(cityName)
             WeatherRepository.setCachedCurrent(cityName, weather)
 
@@ -148,7 +157,7 @@ class MainViewModel : ViewModel() {
 
             _uiState.postValue(MainUIState.Success(cities))
         } catch (e: Exception) {
-            _messageEvent.postValue(Event(context.getString(R.string.error_city_add)))
+            _events.value = Event(UiEventCities.ErrorAddingCity)
 
             val cities = WeatherRepository.getMemoryCities()
                 .mapNotNull { WeatherRepository.getCachedDetails(it)?.current }
@@ -171,6 +180,8 @@ class MainViewModel : ViewModel() {
     private suspend fun removeCitySwipe() {
         val cachedCities = WeatherRepository.getMemoryCities()
 
+        delay(5_000)
+
         val cities = cachedCities.mapNotNull { city ->
             val cached = WeatherRepository.getCachedDetails(city)?.current
             if (cached != null && isCachedValidCurrent(cached.timestamp)) {
@@ -182,21 +193,21 @@ class MainViewModel : ViewModel() {
         _uiState.postValue(MainUIState.Success(cities))
     }
 
-    private fun onSwipeRefreshCities(context: Context) {
+    private fun onSwipeRefreshCities() {
         if (refreshSwipeJob?.isActive == true) return
 
         _refreshState.value = RefreshCityState.Loading
 
         refreshSwipeJob = viewModelScope.launch {
             try {
-                refreshCitiesSwipe(context)
+                refreshCitiesSwipe()
             } finally {
                 _refreshState.value = RefreshCityState.Standard
             }
         }
     }
 
-    private suspend fun refreshCitiesSwipe(context: Context) {
+    private suspend fun refreshCitiesSwipe() {
         val cachedCities = WeatherRepository.getMemoryCities()
         val cities = mutableListOf<CurrentWeatherUI>()
 
@@ -206,6 +217,8 @@ class MainViewModel : ViewModel() {
         }
 
         try {
+            delay(5_000)
+
             for (city in cachedCities) {
                 val currentDto = RetrofitClient.weatherApi.getCurrentWeather(city)
                 WeatherRepository.setCachedCurrent(city, currentDto)
@@ -216,7 +229,7 @@ class MainViewModel : ViewModel() {
             }
             _uiState.postValue(MainUIState.Success(cities))
         } catch (e: Exception) {
-            _messageEvent.postValue(Event(context.getString(R.string.error_pull_to_refresh)))
+            _events.value = Event(UiEventCities.ErrorRefresh)
         }
     }
 
@@ -236,16 +249,16 @@ class MainViewModel : ViewModel() {
         }
     }
 
-    private fun retryInterruptedLoad(context: Context) {
+    private fun retryInterruptedLoad() {
         if (wasLoadingWhenPaused) {
 
             if (restartRequiredLoadCities) {
-                loadCities(context)
+                loadCities()
                 restartRequiredLoadCities = false
             }
 
             if (restartRequiredRefreshSwipe) {
-                onSwipeRefreshCities(context)
+                onSwipeRefreshCities()
                 restartRequiredRefreshSwipe = false
             }
         }
@@ -256,19 +269,19 @@ class MainViewModel : ViewModel() {
             !isChangingConfigurations) cancelLoadingOnPause()
     }
 
-    fun onResumeFragment(context: Context) {
-        if (wasLoadingWhenPaused) retryInterruptedLoad(context)
+    fun onResumeFragment() {
+        if (wasLoadingWhenPaused) retryInterruptedLoad()
     }
 
-    fun onAddNewCity(cityName: String, context: Context) {
-        addNewCity(cityName, context)
+    fun onAddNewCity(cityName: String) {
+        addNewCity(cityName)
     }
 
     suspend fun onSwipeRemove(cityName: String) {
         onSwipeRemoveCity(cityName)
     }
 
-    fun onSwipeRefresh(context: Context) {
-        onSwipeRefreshCities(context)
+    fun onSwipeRefresh() {
+        onSwipeRefreshCities()
     }
 }

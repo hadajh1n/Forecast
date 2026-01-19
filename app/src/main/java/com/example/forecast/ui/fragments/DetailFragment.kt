@@ -21,7 +21,9 @@ import com.example.forecast.core.notifications.NotificationPermissionChecker
 import com.example.forecast.core.notifications.WeatherNotificationSubscription
 import com.example.forecast.databinding.FragmentDetailBinding
 import com.example.forecast.ui.viewModel.DetailUIState
+import com.example.forecast.ui.viewModel.ErrorType
 import com.example.forecast.ui.viewModel.RefreshDetailState
+import com.example.forecast.ui.viewModel.UiEventDetails
 import com.google.android.material.snackbar.Snackbar
 
 class DetailFragment : Fragment() {
@@ -73,7 +75,7 @@ class DetailFragment : Fragment() {
         setupRetryButton()
         setupDangerousWeatherSwitch()
 
-        viewModel.initData(cityName, requireContext())
+        viewModel.initData(cityName)
     }
 
     override fun onStop() {
@@ -83,7 +85,7 @@ class DetailFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        viewModel.onResumeFragment(cityName, requireContext())
+        viewModel.onResumeFragment(cityName)
     }
 
     override fun onDestroyView() {
@@ -94,7 +96,7 @@ class DetailFragment : Fragment() {
 
     private fun setupSwipeRefresh() = with(binding) {
         swipeRefreshLayout.setOnRefreshListener {
-            viewModel.onSwipeRefresh(cityName, requireContext())
+            viewModel.onSwipeRefresh(cityName)
         }
     }
 
@@ -138,8 +140,12 @@ class DetailFragment : Fragment() {
     }
 
     private fun observeMessageEvents() {
-        viewModel.messageEvent.observe(viewLifecycleOwner) { event ->
-            event.getContentIfNotHandled()?.let { message ->
+        viewModel.events.observe(viewLifecycleOwner) { event ->
+            event?.getContentIfNotHandled()?.let { message ->
+                val message = when (message) {
+                    UiEventDetails.ErrorRefresh ->
+                        getString(R.string.error_pull_to_refresh)
+                }
 
                 val snackbar = Snackbar.make(
                     binding.tvCity,
@@ -217,7 +223,10 @@ class DetailFragment : Fragment() {
             contentContainer.visibility = View.GONE
         } else {
             contentContainer.visibility = View.VISIBLE
-            tvTemperature.text = state.temperature
+            tvTemperature.text = getString(
+                R.string.temperature_format,
+                state.temperature.toInt()
+            )
 
             Glide.with(this@DetailFragment)
                 .load(state.iconUrl)
@@ -232,13 +241,15 @@ class DetailFragment : Fragment() {
         progressBar.visibility = View.GONE
         contentContainer.visibility = View.GONE
         errorCardView.visibility = View.VISIBLE
-        tvError.text = state.message
+        tvError.text = when (state.errorType) {
+            ErrorType.FETCH_DETAILS -> getString(R.string.error_fetch_details_weather)
+        }
         swipeRefreshLayout.isEnabled = false
     }
 
     private fun setupRetryButton() {
         binding.btnRetry.setOnClickListener {
-            viewModel.onRetryButton(cityName, requireContext())
+            viewModel.onRetryButton(cityName)
         }
     }
 }

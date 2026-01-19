@@ -1,12 +1,10 @@
 package com.example.forecast.ui.viewModel
 
-import android.content.Context
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.forecast.core.utils.Constants
-import com.example.forecast.R
 import com.example.forecast.core.utils.Event
 import com.example.forecast.data.repository.WeatherRepository
 import com.example.forecast.data.dataclass.forecast.ForecastWeatherUI
@@ -14,6 +12,7 @@ import com.example.forecast.network.retrofit.RetrofitClient
 import com.example.forecast.ui.mapper.CurrentWeatherUiMapper
 import com.example.forecast.ui.mapper.ForecastWeatherUiMapper
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.round
 
@@ -21,17 +20,26 @@ sealed class DetailUIState {
 
     object Loading : DetailUIState()
     data class Success(
-        val temperature: String,
+        val temperature: Float,
         val iconUrl: String,
         val forecast: List<ForecastWeatherUI>
     ) : DetailUIState()
-    data class Error(val message: String) : DetailUIState()
+    data class Error(val errorType: ErrorType) : DetailUIState()
 }
 
 sealed class RefreshDetailState {
 
     object Standard: RefreshDetailState()
     object Loading : RefreshDetailState()
+}
+
+sealed class UiEventDetails {
+
+    object ErrorRefresh : UiEventDetails()
+}
+
+enum class ErrorType {
+    FETCH_DETAILS
 }
 
 class DetailViewModel : ViewModel() {
@@ -45,13 +53,10 @@ class DetailViewModel : ViewModel() {
     private val _refreshState = MutableLiveData<RefreshDetailState>()
     val refreshState: LiveData<RefreshDetailState> = _refreshState
 
-    private val _messageEvent = MutableLiveData<Event<String>>()
-    val messageEvent: LiveData<Event<String>> get() = _messageEvent
+    private val _events = MutableLiveData<Event<UiEventDetails>>()
+    val events: LiveData<Event<UiEventDetails>> = _events
 
-    private var cityName: String? = null
-    private var context: Context? = null
     private var isLoadedStartData = false
-
     private var loadCityDetailJob: Job? = null
     private var refreshSwipeJob: Job? = null
     private var wasLoadingWhenPaused = false
@@ -68,26 +73,23 @@ class DetailViewModel : ViewModel() {
                 Constants.Cache.CACHE_VALIDITY_DURATION_MS
     }
 
-    fun initData(cityName: String, context: Context) {
+    fun initData(cityName: String) {
         if (isLoadedStartData) return
 
         isLoadedStartData = true
-        loadCityDetail(cityName, context)
+        loadCityDetail(cityName)
     }
 
-    private fun loadCityDetail(cityName: String, context: Context) {
+    private fun loadCityDetail(cityName: String) {
         if (loadCityDetailJob?.isActive == true) return
 
         loadCityDetailJob = viewModelScope.launch {
             _detailState.postValue(DetailUIState.Loading)
-            loadCityDetailData(cityName, context)
+            loadCityDetailData(cityName)
         }
     }
 
-    private suspend fun loadCityDetailData(cityName: String, context: Context) {
-        this.cityName = cityName
-        this.context = context
-
+    private suspend fun loadCityDetailData(cityName: String) {
         val cachedData = WeatherRepository.getCachedDetails(cityName)
         val isCurrentValid = cachedData?.current != null &&
                 isCachedValidCurrent(cachedData.current.timestamp)
@@ -95,11 +97,13 @@ class DetailViewModel : ViewModel() {
                 isCachedValidForecast(cachedData.forecast.timestamp)
 
         if (isCurrentValid && isForecastValid) {
-            _detailState.postValue(buildSuccessState(cachedData!!, context))
+            _detailState.postValue(buildSuccessState(cachedData!!))
             return
         }
 
         try {
+            delay(5_000)
+
             if (!isCurrentValid) {
                 val currentDto = RetrofitClient.weatherApi.getCurrentWeather(cityName)
                 WeatherRepository.setCachedCurrent(cityName, currentDto)
@@ -114,55 +118,53 @@ class DetailViewModel : ViewModel() {
 
             if (updatedData?.current == null || updatedData.forecast == null) {
                 _detailState.postValue(
-                    DetailUIState.Error(context.getString(R.string.error_fetch_details_weather))
+                    DetailUIState.Error(ErrorType.FETCH_DETAILS)
                 )
                 return
             }
 
-            _detailState.postValue(buildSuccessState(updatedData, context))
+            _detailState.postValue(buildSuccessState(updatedData))
         } catch (e: Exception) {
             _detailState.postValue(
-                DetailUIState.Error(context.getString(R.string.error_fetch_details_weather))
+                DetailUIState.Error(ErrorType.FETCH_DETAILS)
             )
         }
     }
 
     private fun buildSuccessState(
-        cached: WeatherRepository.CachedWeatherData?,
-        context: Context
+        cached: WeatherRepository.CachedWeatherData?
     ): DetailUIState.Success {
 
-        if (forecastUiMapper == null) forecastUiMapper = ForecastWeatherUiMapper(context)
+        if (forecastUiMapper == null) forecastUiMapper = ForecastWeatherUiMapper()
 
         val currentUi = currentUiMapper.map(cached!!.current!!)
         val forecastUi = forecastUiMapper!!.map(cached!!.forecast!!)
 
         return DetailUIState.Success(
-            temperature = context.getString(
-                R.string.temperature_format,
-                round(currentUi.temp).toInt()
-            ),
+            temperature = round(currentUi.temp).toInt().toFloat(),
             iconUrl = currentUi.iconUrl,
             forecast = forecastUi
         )
     }
 
-    private fun onSwipeRefreshDetails(cityName: String, context: Context) {
+    private fun onSwipeRefreshDetails(cityName: String) {
         if (refreshSwipeJob?.isActive == true) return
 
         _refreshState.value = RefreshDetailState.Loading
 
         refreshSwipeJob = viewModelScope.launch {
             try {
-                refreshDetailsSwipe(cityName, context)
+                refreshDetailsSwipe(cityName)
             } finally {
                 _refreshState.value = RefreshDetailState.Standard
             }
         }
     }
 
-    private suspend fun refreshDetailsSwipe(cityName: String, context: Context) {
+    private suspend fun refreshDetailsSwipe(cityName: String) {
         try {
+            delay(5_000)
+
             val currentDto = RetrofitClient.weatherApi.getCurrentWeather(cityName)
             WeatherRepository.setCachedCurrent(cityName, currentDto)
 
@@ -170,9 +172,9 @@ class DetailViewModel : ViewModel() {
             WeatherRepository.setCachedForecast(cityName, forecastDto)
 
             val updated = WeatherRepository.getCachedDetails(cityName)
-            _detailState.postValue(buildSuccessState(updated, context))
+            _detailState.postValue(buildSuccessState(updated))
         } catch (e: Exception) {
-            _messageEvent.postValue(Event(context.getString(R.string.error_pull_to_refresh)))
+            _events.value = Event(UiEventDetails.ErrorRefresh)
         } finally {
             _refreshState.value = RefreshDetailState.Standard
         }
@@ -194,16 +196,16 @@ class DetailViewModel : ViewModel() {
         }
     }
 
-    private fun retryInterruptedLoad(cityName: String, context: Context) {
+    private fun retryInterruptedLoad(cityName: String) {
         if (wasLoadingWhenPaused) {
 
             if (restartRequiredLoadCityDetail) {
-                loadCityDetail(cityName, context)
+                loadCityDetail(cityName)
                 restartRequiredLoadCityDetail = false
             }
 
             if (restartRequiredRefreshSwipe) {
-                onSwipeRefreshDetails(cityName, context)
+                onSwipeRefreshDetails(cityName)
                 restartRequiredRefreshSwipe = false
             }
         }
@@ -214,15 +216,15 @@ class DetailViewModel : ViewModel() {
             !isChangingConfigurations) cancelLoadingOnPause()
     }
 
-    fun onResumeFragment(cityName: String, context: Context) {
-        if (wasLoadingWhenPaused) retryInterruptedLoad(cityName, context)
+    fun onResumeFragment(cityName: String) {
+        if (wasLoadingWhenPaused) retryInterruptedLoad(cityName)
     }
 
-    fun onSwipeRefresh(cityName: String, context: Context) {
-        onSwipeRefreshDetails(cityName, context)
+    fun onSwipeRefresh(cityName: String) {
+        onSwipeRefreshDetails(cityName)
     }
 
-    fun onRetryButton(cityName: String, context: Context) {
-        loadCityDetail(cityName, context)
+    fun onRetryButton(cityName: String) {
+        loadCityDetail(cityName)
     }
 }

@@ -29,6 +29,7 @@ import com.example.forecast.ui.viewModel.CitiesState
 import com.example.forecast.ui.viewModel.MainUIState
 import com.example.forecast.ui.viewModel.MainViewModel
 import com.example.forecast.ui.viewModel.RefreshCityState
+import com.example.forecast.ui.viewModel.UiEventCities
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.launch
 
@@ -80,7 +81,7 @@ class CityFragment : Fragment() {
         setupAddCityButton()
         restoreDialogState(savedInstanceState)
 
-        viewModel.initData(requireContext())
+        viewModel.initData()
     }
 
     override fun onStop() {
@@ -90,11 +91,12 @@ class CityFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        viewModel.onResumeFragment(requireContext())
+        viewModel.onResumeFragment()
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
+        binding.rvCity.adapter = null
         dialog?.dismiss()
         dialog = null
         dialogInput?.removeTextChangedListener(textWatcher)
@@ -119,7 +121,7 @@ class CityFragment : Fragment() {
 
     private fun setupSwipeRefresh() = with(binding) {
         swipeRefreshLayout.setOnRefreshListener {
-            viewModel.onSwipeRefresh(requireContext())
+            viewModel.onSwipeRefresh()
         }
     }
 
@@ -179,8 +181,21 @@ class CityFragment : Fragment() {
     }
 
     private fun observeMessageError() {
-        viewModel.messageEvent.observe(viewLifecycleOwner) { event ->
-            event.getContentIfNotHandled()?.let { message ->
+        viewModel.events.observe(viewLifecycleOwner) { event ->
+            event?.getContentIfNotHandled()?.let { message ->
+                val message = when (message) {
+                    UiEventCities.Offline ->
+                        getString(R.string.offline_mode)
+
+                    UiEventCities.CityAlreadyAdded ->
+                        getString(R.string.error_city_already_added)
+
+                    UiEventCities.ErrorAddingCity ->
+                        getString(R.string.error_city_add)
+
+                    UiEventCities.ErrorRefresh ->
+                        getString(R.string.error_pull_to_refresh)
+                }
 
                 val snackbar = Snackbar.make(
                     requireView(),
@@ -333,7 +348,7 @@ class CityFragment : Fragment() {
         dialogInput?.setOnItemClickListener { _, _, position, _ ->
             val cityName = dialogInput?.adapter?.getItem(position).toString().trim()
             if (cityName.isNotEmpty()) {
-                viewModel.onAddNewCity(cityName, requireContext())
+                viewModel.onAddNewCity(cityName)
             }
 
             dialogInputText = null

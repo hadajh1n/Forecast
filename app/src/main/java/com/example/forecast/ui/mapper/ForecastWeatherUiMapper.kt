@@ -11,7 +11,7 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.round
 
-class ForecastWeatherUiMapper(private val context: Context) {
+class ForecastWeatherUiMapper {
 
     companion object {
         private const val DAYS_TO_SHOW = 5
@@ -25,12 +25,8 @@ class ForecastWeatherUiMapper(private val context: Context) {
                 ForecastWeatherUI(
                     dayOfWeek = formatDayOfWeek(dayItem.dt),
                     iconUrl = "https://openweathermap.org/img/wn/${dayItem.icon}@2x.png",
-                    tempMax = context.getString(
-                        R.string.temperature_format, round(dayItem.tempMax).toInt()
-                    ),
-                    tempMin = context.getString(
-                        R.string.temperature_format, round(dayItem.tempMin).toInt()
-                    )
+                    tempMax = round(dayItem.tempMax),
+                    tempMin = round(dayItem.tempMin)
                 )
             }
     }
