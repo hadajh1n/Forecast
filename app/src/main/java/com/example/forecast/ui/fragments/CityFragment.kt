@@ -23,6 +23,7 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.forecast.R
+import com.example.forecast.core.utils.CityItemDecoration
 import com.example.forecast.ui.adapter.CityAdapter
 import com.example.forecast.databinding.FragmentCityBinding
 import com.example.forecast.ui.viewModel.CitiesState
@@ -45,14 +46,17 @@ class CityFragment : Fragment() {
 
     private val viewModel: MainViewModel by viewModels()
 
-    private val cityAdapter = CityAdapter { currentWeather ->
-        try {
-            val action = CityFragmentDirections
-                .actionCityFragmentToDetailFragment(currentWeather.cityName)
-            findNavController().navigate(action)
-        } catch (e: IllegalStateException) {
-        }
-    }
+    private val cityAdapter = CityAdapter(
+        onItemClick = { currentWeather ->
+            try {
+                val action = CityFragmentDirections
+                    .actionCityFragmentToDetailFragment(currentWeather.cityName)
+                findNavController().navigate(action)
+            } catch (e: IllegalStateException) {
+            }
+        },
+        onAddClick = { showAddCityDialog() }
+    )
 
     private var dialog: AlertDialog? = null
     private var dialogInputText: String? = null
@@ -77,8 +81,8 @@ class CityFragment : Fragment() {
         observeCitiesState()
         observeMessageError()
         setupItemTouchHelper()
-        setupAddCityCardView()
-        setupAddCityButton()
+//        setupAddCityCardView()
+//        setupAddCityButton()
         restoreDialogState(savedInstanceState)
 
         viewModel.initData()
@@ -109,11 +113,9 @@ class CityFragment : Fragment() {
             when (state) {
                 RefreshCityState.Loading -> swipeRefreshLayout.post {
                     swipeRefreshLayout.isRefreshing = true
-                    btnAddCity.visibility = View.GONE
                 }
                 RefreshCityState.Standard -> swipeRefreshLayout.post {
                     swipeRefreshLayout.isRefreshing = false
-                    btnAddCity.visibility = View.VISIBLE
                 }
             }
         }
@@ -134,6 +136,11 @@ class CityFragment : Fragment() {
     private fun setupRecyclerView() = with(binding) {
         rvCity.adapter = cityAdapter
         rvCity.layoutManager = LinearLayoutManager(requireContext())
+        val decoration = CityItemDecoration(
+            spaceHorizontal = resources.getDimensionPixelSize(R.dimen.city_item_horizontal),
+            spaceVertical = resources.getDimensionPixelSize(R.dimen.city_item_vertical)
+        )
+        rvCity.addItemDecoration(decoration)
     }
 
     private fun observeCitiesState() = with(binding) {
@@ -144,8 +151,6 @@ class CityFragment : Fragment() {
                     swipeRefreshLayout.isEnabled = true
                 }
                 CitiesState.Loading -> {
-                    cvAddFirstCity.visibility = View.GONE
-                    cvCity.visibility = View.VISIBLE
                     cityAdapter.showLoadingFooter()
                     swipeRefreshLayout.isEnabled = false
                 }
@@ -164,18 +169,12 @@ class CityFragment : Fragment() {
 
     private fun handleLoadingState() = with(binding) {
         progressBar.visibility = View.VISIBLE
-        cvCity.visibility = View.GONE
-        cvAddFirstCity.visibility = View.GONE
-        btnAddCity.visibility = View.GONE
         swipeRefreshLayout.isEnabled = false
     }
 
     private fun handleSuccessState(state: MainUIState.Success) = with(binding) {
         swipeRefreshLayout.isRefreshing = false
         progressBar.visibility = View.GONE
-        cvCity.visibility = if (state.cities.isEmpty()) View.GONE else View.VISIBLE
-        cvAddFirstCity.visibility = if (state.cities.isEmpty()) View.VISIBLE else View.GONE
-        btnAddCity.visibility = View.VISIBLE
         cityAdapter.updateCities(state.cities)
         swipeRefreshLayout.isEnabled = if (state.cities.isEmpty()) false else true
     }
@@ -258,17 +257,17 @@ class CityFragment : Fragment() {
         ItemTouchHelper(itemTouchHelperCallback).attachToRecyclerView(binding.rvCity)
     }
 
-    private fun setupAddCityCardView() {
-        binding.cvAddFirstCity.setOnClickListener {
-            showAddCityDialog()
-        }
-    }
-
-    private fun setupAddCityButton() {
-        binding.btnAddCity.setOnClickListener {
-            showAddCityDialog()
-        }
-    }
+//    private fun setupAddCityCardView() {
+//        binding.cvAddFirstCity.setOnClickListener {
+//            showAddCityDialog()
+//        }
+//    }
+//
+//    private fun setupAddCityButton() {
+//        binding.btnAddCity.setOnClickListener {
+//            showAddCityDialog()
+//        }
+//    }
 
     private fun restoreDialogState(savedInstanceState: Bundle?) {
         if (savedInstanceState != null) {

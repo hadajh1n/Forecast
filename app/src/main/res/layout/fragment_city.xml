@@ -16,70 +16,14 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
-        <androidx.core.widget.NestedScrollView
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvCity"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:fillViewport="true">
-
-            <LinearLayout
-                android:id="@+id/main"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="25dp"
-                android:gravity="center_horizontal">
-
-                <androidx.cardview.widget.CardView
-                    android:id="@+id/cvAddFirstCity"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:visibility="gone"
-                    app:cardBackgroundColor="@color/item_city"
-                    app:cardCornerRadius="16dp"
-                    app:cardElevation="4dp"
-                    tools:visibility="visible">
-
-                    <TextView
-                        android:id="@+id/tvAddFirstCity"
-                        style="@style/tvAddFirstCity"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="center"
-                        android:padding="15dp"
-                        android:text="@string/add_first_city"
-                        tools:text="Добавьте свой первый город" />
-                </androidx.cardview.widget.CardView>
-
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/cvCity"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:visibility="gone"
-                    app:cardCornerRadius="16dp"
-                    app:cardElevation="4dp"
-                    tools:visibility="visible">
-
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/rvCity"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:padding="8dp"
-                        android:nestedScrollingEnabled="false" />
-                </com.google.android.material.card.MaterialCardView>
-
-                <ImageButton
-                    android:id="@+id/btnAddCity"
-                    android:layout_width="75dp"
-                    android:layout_height="75dp"
-                    android:layout_gravity="center"
-                    android:layout_marginTop="10dp"
-                    android:backgroundTint="@color/transparent"
-                    android:scaleType="centerCrop"
-                    android:src="@drawable/btn_add"
-                    android:visibility="gone"
-                    tools:visibility="visible"/>
-            </LinearLayout>
-        </androidx.core.widget.NestedScrollView>
+            android:clipToPadding="false"
+            android:padding="25dp"
+            android:nestedScrollingEnabled="false" />
+        
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
     <ProgressBar

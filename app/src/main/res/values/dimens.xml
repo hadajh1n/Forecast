@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <dimen name="dialog_padding">40dp</dimen>
+    <dimen name="city_item_horizontal">16dp</dimen>
+    <dimen name="city_item_vertical">8dp</dimen>
 </resources>
