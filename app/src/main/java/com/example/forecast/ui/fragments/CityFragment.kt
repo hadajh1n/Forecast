@@ -81,8 +81,6 @@ class CityFragment : Fragment() {
         observeCitiesState()
         observeMessageError()
         setupItemTouchHelper()
-//        setupAddCityCardView()
-//        setupAddCityButton()
         restoreDialogState(savedInstanceState)
 
         viewModel.initData()
@@ -256,18 +254,6 @@ class CityFragment : Fragment() {
 
         ItemTouchHelper(itemTouchHelperCallback).attachToRecyclerView(binding.rvCity)
     }
-
-//    private fun setupAddCityCardView() {
-//        binding.cvAddFirstCity.setOnClickListener {
-//            showAddCityDialog()
-//        }
-//    }
-//
-//    private fun setupAddCityButton() {
-//        binding.btnAddCity.setOnClickListener {
-//            showAddCityDialog()
-//        }
-//    }
 
     private fun restoreDialogState(savedInstanceState: Bundle?) {
         if (savedInstanceState != null) {

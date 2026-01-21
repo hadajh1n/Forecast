@@ -1,6 +1,5 @@
 package com.example.forecast.ui.adapter
 
-import android.content.Context
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
@@ -27,39 +26,19 @@ class CityAdapter(
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     private val items = mutableListOf<CityAdapterItem>()
+    private var currentCities: List<CurrentWeatherUI> = emptyList()
     private var isLoadingFooterVisible = false
 
     companion object {
         private const val TYPE_ADD_FIRST = 0
         private const val TYPE_CITY = 1
-        private const val TYPE_ADD_BUTTON = 2
-        private const val TYPE_LOADING = 3
+        private const val TYPE_LOADING = 2
+        private const val TYPE_ADD_BUTTON = 3
     }
 
     fun updateCities(newCities: List<CurrentWeatherUI>) {
-        val newItems = buildList {
-            if (newCities.isEmpty()) {
-                add(CityAdapterItem.AddFirst)
-            }
-
-            newCities.forEach {
-                add(CityAdapterItem.City(it))
-            }
-
-            if (isLoadingFooterVisible) {
-                add(CityAdapterItem.Loading)
-            }
-
-            add(CityAdapterItem.AddButton)
-        }
-
-        val diffResult = DiffUtil.calculateDiff(
-            CityDiffCallback(items, newItems)
-        )
-
-        items.clear()
-        items.addAll(newItems)
-        diffResult.dispatchUpdatesTo(this@CityAdapter)
+        currentCities = newCities
+        rebuildItems()
     }
 
     fun removeCity(position: Int): CurrentWeatherUI {
@@ -74,20 +53,32 @@ class CityAdapter(
     fun showLoadingFooter() {
         if (!isLoadingFooterVisible) {
             isLoadingFooterVisible = true
-            items.add(CityAdapterItem.Loading)
-            notifyItemInserted(items.lastIndex)
+            updateCities(currentCities)
         }
     }
 
     fun hideLoadingFooter() {
         if (isLoadingFooterVisible) {
-            val index = items.indexOfLast { it is CityAdapterItem.Loading }
-            if (index != -1) {
-                items.removeAt(index)
-                notifyItemRemoved(index)
-            }
             isLoadingFooterVisible = false
+            updateCities(currentCities)
         }
+    }
+
+    private fun rebuildItems() {
+        val newItems = buildList {
+            if (currentCities.isEmpty()) add(CityAdapterItem.AddFirst)
+
+            currentCities.forEach { add(CityAdapterItem.City(it)) }
+
+            if (isLoadingFooterVisible) add(CityAdapterItem.Loading)
+
+            add(CityAdapterItem.AddButton)
+        }
+
+        val diffResult = DiffUtil.calculateDiff(CityDiffCallback(items, newItems))
+        items.clear()
+        items.addAll(newItems)
+        diffResult.dispatchUpdatesTo(this@CityAdapter)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
@@ -97,21 +88,17 @@ class CityAdapter(
                 ItemAddFirstCityBinding.inflate(inflater, parent, false),
                 onAddClick
             )
-
             TYPE_CITY -> CityViewHolder(
                 ItemCityBinding.inflate(inflater, parent, false),
                 onItemClick
             )
-
+            TYPE_LOADING -> LoadingViewHolder(
+                ItemLoadingBinding.inflate(inflater, parent, false)
+            )
             TYPE_ADD_BUTTON -> AddButtonViewHolder(
                 ItemAddButtonBinding.inflate(inflater, parent, false),
                 onAddClick
             )
-
-            TYPE_LOADING -> LoadingViewHolder(
-                ItemLoadingBinding.inflate(inflater, parent, false)
-            )
-
             else -> error("Invalid view type")
         }
     }
@@ -120,8 +107,8 @@ class CityAdapter(
         when (val item = items[position]) {
             is CityAdapterItem.AddFirst -> (holder as AddFirstViewHolder).bind()
             is CityAdapterItem.City -> (holder as CityViewHolder).bind(item.data)
+            is CityAdapterItem.Loading -> Unit
             is CityAdapterItem.AddButton -> (holder as AddButtonViewHolder).bind()
-            is CityAdapterItem.Loading -> {}
         }
     }
 
@@ -131,8 +118,8 @@ class CityAdapter(
         when (items[position]) {
             is CityAdapterItem.AddFirst -> TYPE_ADD_FIRST
             is CityAdapterItem.City -> TYPE_CITY
-            is CityAdapterItem.AddButton -> TYPE_ADD_BUTTON
             is CityAdapterItem.Loading -> TYPE_LOADING
+            is CityAdapterItem.AddButton -> TYPE_ADD_BUTTON
         }
 
     class AddFirstViewHolder(
@@ -161,6 +148,10 @@ class CityAdapter(
         }
     }
 
+    class LoadingViewHolder(
+        binding: ItemLoadingBinding
+    ) : RecyclerView.ViewHolder(binding.root)
+
     class AddButtonViewHolder(
         private val binding: ItemAddButtonBinding,
         private val onAddClick: () -> Unit
@@ -170,10 +161,6 @@ class CityAdapter(
             binding.btnAddCity.setOnClickListener { onAddClick() }
         }
     }
-
-    class LoadingViewHolder(
-        binding: ItemLoadingBinding
-    ) : RecyclerView.ViewHolder(binding.root)
 }
 
 class CityDiffCallback(
