@@ -105,10 +105,10 @@ class CityAdapter(
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         when (val item = items[position]) {
-            is CityAdapterItem.AddFirst -> (holder as AddFirstViewHolder).bind()
+            is CityAdapterItem.AddFirst -> Unit
             is CityAdapterItem.City -> (holder as CityViewHolder).bind(item.data)
             is CityAdapterItem.Loading -> Unit
-            is CityAdapterItem.AddButton -> (holder as AddButtonViewHolder).bind()
+            is CityAdapterItem.AddButton -> Unit
         }
     }
 
@@ -124,10 +124,10 @@ class CityAdapter(
 
     class AddFirstViewHolder(
         private val binding: ItemAddFirstCityBinding,
-        private val onAddClick: () -> Unit
+        onAddClick: () -> Unit
     ) : RecyclerView.ViewHolder(binding.root) {
 
-        fun bind() {
+        init {
             binding.root.setOnClickListener { onAddClick() }
         }
     }
@@ -154,10 +154,10 @@ class CityAdapter(
 
     class AddButtonViewHolder(
         private val binding: ItemAddButtonBinding,
-        private val onAddClick: () -> Unit
+        onAddClick: () -> Unit
     ) : RecyclerView.ViewHolder(binding.root) {
 
-        fun bind() {
+        init {
             binding.btnAddCity.setOnClickListener { onAddClick() }
         }
     }
