@@ -18,4 +18,5 @@
     <color name="progress_bar_color_white">#FFFFFFFF</color>
     <color name="errorSnackbarPullToRefresh">#F60000</color>
     <color name="switchThumbColor">#4CAF50</color>
+    <color name="city_group_stroke">#40FFFFFF</color>
 </resources>

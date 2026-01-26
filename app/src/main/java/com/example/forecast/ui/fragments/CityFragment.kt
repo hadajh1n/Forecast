@@ -23,6 +23,7 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.forecast.R
+import com.example.forecast.core.utils.CityGroupDecoration
 import com.example.forecast.core.utils.CityItemDecoration
 import com.example.forecast.ui.adapter.CityAdapter
 import com.example.forecast.databinding.FragmentCityBinding
@@ -134,11 +135,23 @@ class CityFragment : Fragment() {
     private fun setupRecyclerView() = with(binding) {
         rvCity.adapter = cityAdapter
         rvCity.layoutManager = LinearLayoutManager(requireContext())
-        val decoration = CityItemDecoration(
-            spaceHorizontal = resources.getDimensionPixelSize(R.dimen.city_item_horizontal),
-            spaceVertical = resources.getDimensionPixelSize(R.dimen.city_item_vertical)
+
+        rvCity.addItemDecoration(
+            CityItemDecoration(
+                spaceHorizontal = resources.getDimensionPixelSize(R.dimen.city_item_horizontal),
+                spaceVertical = resources.getDimensionPixelSize(R.dimen.city_item_vertical)
+            )
         )
-        rvCity.addItemDecoration(decoration)
+
+        rvCity.addItemDecoration(
+            CityGroupDecoration(
+                strokeWidth = resources.getDimension(R.dimen.city_group_stroke),
+                cornerRadius = resources.getDimension(R.dimen.city_group_radius),
+                verticalPadding = resources.getDimension(R.dimen.city_vertical_padding),
+                strokeColor = requireContext().getColor(R.color.city_group_stroke),
+                fillColor = requireContext().getColor(R.color.black)
+            )
+        )
     }
 
     private fun observeCitiesState() = with(binding) {

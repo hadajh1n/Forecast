@@ -3,4 +3,7 @@
     <dimen name="dialog_padding">40dp</dimen>
     <dimen name="city_item_horizontal">16dp</dimen>
     <dimen name="city_item_vertical">8dp</dimen>
+    <dimen name="city_group_stroke">2dp</dimen>
+    <dimen name="city_group_radius">16dp</dimen>
+    <dimen name="city_vertical_padding">24dp</dimen>
 </resources>
